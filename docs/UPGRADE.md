@@ -14,3 +14,4 @@
 
 ## 阶段记录
 - T00：已完成审计；基线测试待执行。
+- T01：数据升级 v3，保留旧键与记录；Repository 边界、跨标签存储订阅、JSON 导出、日历日成长统计；19 项测试与类型检查通过。变更：types/store、data/repository、growth、repository.test、迁移测试。

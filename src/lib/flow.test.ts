@@ -9,7 +9,7 @@ import type {Session} from './types';
 test('v1 records and reward survive the v2 migration',()=>{
  const base=initialData();const old={schemaVersion:1,preference:{scene:'office',duration:180,mobility:'standing'},sessions:[{id:'legacy',activityId:'tea-pause',preference:{scene:'office',duration:180,mobility:'standing'},startedAt:'2026-10-01T08:00:00.000Z',status:'completed',deadlineAt:null,remainingSeconds:0,reward:10}],feedback:[],energy:10,petName:'阿竹',reminder:base.reminder};
  const migrated=migrateData(old);
- assert.equal(migrated.schemaVersion,2);assert.equal(migrated.sessions.length,1);assert.equal(migrated.energy,10);assert.equal(migrated.petName,'阿竹');assert.equal(migrated.currentScene,'office');assert.equal(migrated.profile.onboardingComplete,true);
+ assert.equal(migrated.schemaVersion,3);assert.equal(migrated.sessions.length,1);assert.equal(migrated.energy,10);assert.equal(migrated.petName,'阿竹');assert.equal(migrated.currentScene,'office');assert.equal(migrated.profile.onboardingComplete,true);
  assert.equal(migrateData('{broken').sessions.length,0);
 });
 test('companion schedules within hours and never treats elapsed page time as activity',()=>{
