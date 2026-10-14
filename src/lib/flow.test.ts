@@ -13,8 +13,8 @@ test('v1 records and reward survive the v2 migration',()=>{
  assert.equal(migrateData('{broken').sessions.length,0);
 });
 test('companion schedules within hours and never treats elapsed page time as activity',()=>{
- const r={...initialData().reminder,startHour:9,endHour:21,intervalMinutes:60};
- const evening=new Date(2026,9,13,20,30).getTime();const next=nextReminderAt(evening,r);
+ const r={...initialData().reminder,enabled:true,startHour:9,endHour:21,intervalMinutes:60};
+ const evening=new Date(2026,9,13,20,30).getTime();const next=nextReminderAt(evening,r)!;
  assert.equal(new Date(next).getHours(),9);assert.equal(new Date(next).getDate(),14);
  const session={id:'c',startedAt:new Date(evening).toISOString(),status:'active' as const,currentScene:'office' as const,nextReminderAt:next};
  assert.equal(companionDue(session,r,evening),false);assert.equal(companionDue(session,r,next),true);assert.equal(companionDue({...session,status:'paused'},r,next),false);assert.equal(companionDue(session,{...r,quiet:true},next),false);

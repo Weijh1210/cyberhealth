@@ -19,3 +19,4 @@
 - T03：动作库增加 10 张来源核对卡，共 12 张、覆盖 L1/L2/L3；旧演示完整保留；来源独立可查、步骤/安全/不适用/器械信息结构化。机构资料核对不等于专业医学审校，剂量仍为产品设计。20 项测试与类型检查通过。变更：sourceCheckedActivities、activities、microActivities、evidenceSources、types/store、content.test。
 - T04：推荐仅放行来源核对卡，场景/姿势/走动空间/时长/器械/用户排除均硬过滤；独立 35/25/20/20 评分与近期多样性，显示推荐原因与不适合入口。23 项测试与类型检查通过。变更：recommend、App、recommendation.test、旧推荐测试。
 - T05：独立可模拟时钟的执行状态机；开始/暂停/继续/跳过/到时待确认；任何动作计时都不会自动入账；完成唯一 ID 去重。25 项测试与类型检查通过。变更：execution、execution.test、App、TeachingCard。
+- T06：前台调度与通知展示分离；主动开关、暂停到时恢复、每日上限、跨夜与 DND、最小间隔、三档延后与原因事件；IndexedDB 事务去重、多标签同步、执行时抑制。延后属于同一次提醒，不重复占用日额度。「已活动」只保存反馈。31 项测试与类型检查通过。变更：reminders/companion/notifications、data/reminderClaim、App、types/store、reminders.test、兼容测试。

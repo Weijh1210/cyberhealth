@@ -46,7 +46,7 @@ test('existing records and new scene choices survive migration',()=>{
  assert.equal(migrated.currentScene,'classroom');assert.equal(migrated.currentNeed,'neck');assert.equal(migrated.sessions.length,1);assert.equal(migrated.energy,10);
 });
 test('paused or quiet companion does not fire; next reminder respects hours',()=>{
- const d=initialData();const time=new Date(2026,9,13,10).getTime();const r={...d.reminder,startHour:9,endHour:21,intervalMinutes:45};const next=nextReminderAt(time,r);
+ const d=initialData();const time=new Date(2026,9,13,10).getTime();const r={...d.reminder,enabled:true,startHour:9,endHour:21,intervalMinutes:45};const next=nextReminderAt(time,r)!;
  assert.equal(next-time,45*60000);
  const session={id:'companion',startedAt:new Date(time).toISOString(),status:'active' as const,currentScene:'library' as const,nextReminderAt:next};
  assert.equal(companionDue(session,r,next),true);assert.equal(companionDue({...session,status:'paused'},r,next),false);assert.equal(companionDue(session,{...r,quiet:true},next),false);
