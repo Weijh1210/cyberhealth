@@ -29,7 +29,7 @@ test('snoozes reuse original occurrence without bypassing quiet hours or adding 
  assert.equal(respondToReminder(snoozed,'postponed',at(),'feedback'),snoozed);}
 });
 test('pause expires at requested instant; already-active is feedback, not a completed action',()=>{
- const d=respondToReminder(enabled(),'paused',at(),'pause','开会',60);assert.equal(d.reminder.pausedUntil,new Date(at(15,11)).toISOString());assert.equal(reminderDue(d,at(15,10,30)),false);
+ const d=respondToReminder(enabled(),'paused',at(),'pause','开会',60);assert.equal(d.reminder.pausedUntil,new Date(at(15,11)).toISOString());assert.equal(respondToReminder(enabled(),'paused',at(),'short-pause','',0.5).reminder.pausedUntil,new Date(at()+30000).toISOString());assert.equal(reminderDue(d,at(15,10,30)),false);
  const active=respondToReminder(enabled(),'already-active',at(),'active','已经活动过');assert.equal(active.sessions.length,0);assert.equal(active.energy,0);
 });
 test('calendar windows follow current device time zone across DST',()=>{

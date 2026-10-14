@@ -1,0 +1,2 @@
+import type {MetadataRoute} from 'next';
+export default function manifest():MetadataRoute.Manifest{return {id:'/',name:'CyberHealth 摸鱼养生局',short_name:'摸鱼养生局',description:'在学习和工作间隙，按自己的节奏微休息。',start_url:'/',scope:'/',display:'standalone',background_color:'#fffefa',theme_color:'#315e42',lang:'zh-CN',icons:[{src:'/icons/icon-192.png',sizes:'192x192',type:'image/png'},{src:'/icons/icon-512.png',sizes:'512x512',type:'image/png',purpose:'any'},{src:'/icons/maskable-512.png',sizes:'512x512',type:'image/png',purpose:'maskable'}]};}

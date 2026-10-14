@@ -15,3 +15,7 @@ test('seven calendar days and completed events are counted once',()=>{
  const data=initialData();const now=new Date(2026,9,15,12);const s={id:'one',activityId:'chin-tuck',preference:data.preference,startedAt:now.toISOString(),completedAt:now.toISOString(),status:'completed' as const,remainingSeconds:0,deadlineAt:null};
  const stats=growthStats([s,s,{...s,id:'pending',status:'ready'}],now);assert.equal(stats.today.count,1);assert.equal(stats.totalSeconds,30);assert.equal(stats.days.length,7);
 });
+test('failed storage keeps usable in-memory preferences and reports failure',()=>{
+ Object.assign(globalThis,{localStorage:{getItem:()=>null,setItem:()=>{throw new Error('quota');},removeItem:()=>{throw new Error('blocked');}}});
+ const data=initialData();data.currentScene='office';assert.equal(localRepository.save(data),false);assert.equal(localRepository.read().currentScene,'office');assert.equal(localRepository.clear(),false);assert.equal(localRepository.read().currentScene,'office');
+});

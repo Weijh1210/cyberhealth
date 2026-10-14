@@ -1,6 +1,7 @@
 'use client';
 import {useState} from 'react';
 import type {AppData,FocusArea,Scene,UserProfile,Reminder} from '../lib/types';
+import {useDialogFocus} from './useDialogFocus';
 import ReminderFields from './ReminderFields';
 import {requestNotifications} from '../lib/notifications';
 const scenes:{id:Scene;name:string}[]=[{id:'library',name:'图书馆 / 自习室'},{id:'office',name:'办公室'},{id:'home',name:'家 / 宿舍'},{id:'outdoor',name:'户外'}];
@@ -8,6 +9,7 @@ const focuses:{id:FocusArea;name:string}[]=[{id:'neck',name:'颈肩'},{id:'lower
 function toggle<T>(items:T[],item:T){return items.includes(item)?items.filter(x=>x!==item):[...items,item];}
 export default function Onboarding({initial,onSave,onSkip,editing=false}:{initial:AppData;onSave:(profile:UserProfile,reminder:Reminder)=>void;onSkip:()=>void;editing?:boolean}){
  const [profile,setProfile]=useState(initial.profile);const [reminder,setReminder]=useState(initial.reminder);const [step,setStep]=useState(editing?1:0);const [message,setMessage]=useState('');const [busy,setBusy]=useState(false);
+ useDialogFocus(true,'.onboard-card',onSkip);
  const titles=['给忙碌留一个小间隙','想照顾哪些部位？','你通常在哪里？','安排你的提醒节奏','由你决定是否通知'];
  const save=()=>onSave({...profile,onboardingComplete:true,commonScenes:profile.commonScenes.length?profile.commonScenes:['library'],focusAreas:profile.focusAreas.length?profile.focusAreas:['general']},reminder);
  return <div className="onboard-overlay"><section className="onboard-card" role="dialog" aria-modal="true" aria-label="简短设置"><div className="onboard-head"><span className="section-kicker">CyberHealth · {step+1} / 5</span><h2>{titles[step]}</h2><p>Small Moves, Lasting Habits.</p></div>

@@ -11,7 +11,7 @@ export function matches(a:Activity,p:Preference,profile?:UserProfile,feedback:Fe
  if(a.meta.spaceRequired==='spacious'&&!['spacious','outside'].includes(p.mobility))return false;
  if(a.meta.spaceRequired==='small'&&p.mobility==='seated')return false;
  if(profile?.quiet&&a.meta.noiseLevel!=='silent')return false;
- if(['library','classroom'].includes(p.scene)&&(a.meta.level!=='L1'||a.meta.noiseLevel!=='silent'))return false;
+ if(['library','classroom'].includes(p.scene)&&(a.meta.level!=='L1'||a.meta.noiseLevel!=='silent'||a.meta.attentionLevel!=='low'))return false;
  if(profile?.smallMovement&&a.meta.level==='L3')return false;
  if(a.requiresAudio||a.meta.equipmentRequired.some(item=>!p.availableEquipment?.includes(item)))return false;
  return true;

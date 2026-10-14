@@ -26,7 +26,7 @@ export function respondToReminder(data:AppData,type:'postponed'|'skipped'|'alrea
  const c=data.companion;if(!c)return data;
  const occurrence=[...data.reminderEvents].reverse().find(e=>e.type==='due')?.id;
  const events:ReminderEvent[]=[...data.reminderEvents,{id,companionId:c.id,type,at:new Date(now).toISOString(),scene:data.currentScene,reason,delayMinutes:delayMinutes||undefined,reminderId:occurrence}];
- const pauseUntil=type==='paused'?new Date(now+Math.max(1,delayMinutes)*60000).toISOString():null;
+ const pauseUntil=type==='paused'?new Date(Math.round(now+Math.max(0,delayMinutes)*60000)).toISOString():null;
  const snoozedUntil=type==='postponed'?scheduleReminder(now,{...data.reminder,pausedUntil:null},[],delayMinutes):null;
  const reminder={...data.reminder,snoozedUntil,pendingReminderId:type==='postponed'?occurrence||null:null,pausedUntil:pauseUntil,postponedCount:data.reminder.postponedCount+(type==='postponed'?1:0)};
  return {...data,reminder,reminderEvents:events,companion:{...c,status:type==='paused'?'paused':'active',nextReminderAt:snoozedUntil??scheduleReminder(now,reminder,events,Math.max(delayMinutes,type==='postponed'?0:reminder.intervalMinutes))}};
