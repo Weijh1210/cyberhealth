@@ -1,0 +1,2 @@
+import {feedbackChoices} from '../lib/activityFeedback';import type {Feedback} from '../lib/types';
+export default function ActivityFeedback({value,onChange}:{value?:Feedback['value'];onChange:(value:Feedback['value'])=>void}){return <div className="feedback-box"><strong>这项活动感觉怎样？</strong><p>可选反馈，用于挑选下次活动；不是身体诊断。</p><div>{feedbackChoices.map(choice=><button key={choice.value} aria-pressed={choice.value===value} className={choice.value===value?'selected':''} onClick={()=>onChange(choice.value)}>{choice.label}</button>)}</div></div>;}
