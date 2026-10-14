@@ -1,10 +1,12 @@
-import type {AppData,Reminder,ReminderEvent} from './types';
+import {adaptiveDelay} from './adaptiveReminders';
+import type {AdaptiveSettings,AppData,Reminder,ReminderEvent} from './types';
 import {localDay} from './date';
 export function inHourWindow(hour:number,start:number,end:number,equalMeansAll=true){return start===end?equalMeansAll:start<end?hour>=start&&hour<end:hour>=start||hour<end;}
 export function permittedAt(time:number,r:Reminder){const hour=new Date(time).getHours();return inHourWindow(hour,r.startHour,r.endHour)&&!inHourWindow(hour,r.dndStartHour,r.dndEndHour,false);}
 export function dueEvents(events:ReminderEvent[],now:number){return events.filter(e=>e.type==='due'&&localDay(new Date(e.at))===localDay(new Date(now)));}
 export function latestDue(events:ReminderEvent[]){return events.reduce((n,e)=>e.type==='due'?Math.max(n,Date.parse(e.at)||0):n,0);}
-export function scheduleReminder(from:number,r:Reminder,events:ReminderEvent[]=[],delayMinutes=r.intervalMinutes){
+export function scheduleReminder(from:number,r:Reminder,events:ReminderEvent[]=[],delayMinutes=r.intervalMinutes,adaptive:AdaptiveSettings={enabled:false,resetAt:null}){
+ if(delayMinutes===r.intervalMinutes)delayMinutes=adaptiveDelay(from,delayMinutes,events,adaptive);
  let candidate=Math.max(from+delayMinutes*60000,latestDue(events)+r.intervalMinutes*60000,r.pausedUntil?Date.parse(r.pausedUntil)||0:0);
  // Scan minute boundaries using local calendar windows, including cross-midnight and DST.
  for(let i=0;i<8*24*60;i++){
@@ -29,5 +31,7 @@ export function respondToReminder(data:AppData,type:'postponed'|'skipped'|'alrea
  const pauseUntil=type==='paused'?new Date(Math.round(now+Math.max(0,delayMinutes)*60000)).toISOString():null;
  const snoozedUntil=type==='postponed'?scheduleReminder(now,{...data.reminder,pausedUntil:null},[],delayMinutes):null;
  const reminder={...data.reminder,snoozedUntil,pendingReminderId:type==='postponed'?occurrence||null:null,pausedUntil:pauseUntil,postponedCount:data.reminder.postponedCount+(type==='postponed'?1:0)};
- return {...data,reminder,reminderEvents:events,companion:{...c,status:type==='paused'?'paused':'active',nextReminderAt:snoozedUntil??scheduleReminder(now,reminder,events,Math.max(delayMinutes,type==='postponed'?0:reminder.intervalMinutes))}};
+ return {...data,reminder,reminderEvents:events,companion:{...c,status:type==='paused'?'paused':'active',nextReminderAt:snoozedUntil??scheduleReminder(now,reminder,events,Math.max(delayMinutes,type==='postponed'?0:reminder.intervalMinutes),data.adaptive)}};
 }
+
+export function withReminderPlan(data:AppData,now:number):AppData {const c=data.companion;if(!data.reminder.enabled||!c||c.status!=='active'||c.nextReminderAt===null)return data;const id=`${c.id}:planned:${c.nextReminderAt}`;if(data.reminderEvents.some(e=>e.id===id))return data;return {...data,reminderEvents:[...data.reminderEvents,{id,companionId:c.id,type:'planned',at:new Date(now).toISOString(),scheduledAt:new Date(c.nextReminderAt).toISOString(),scene:data.currentScene}]};}

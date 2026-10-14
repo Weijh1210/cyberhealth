@@ -5,7 +5,7 @@ import {localRepository} from '../data/repository';
 import {growthStats} from './growth';
 test('v2 migrates to v3 without losing settings, garden or records',()=>{
  const base=initialData(); const result=migrateData({...base,schemaVersion:2,energy:30,petName:'竹',reminder:{enabled:true,startHour:23,endHour:6,intervalMinutes:45}});
- assert.equal(result.schemaVersion,3);assert.equal(result.energy,30);assert.equal(result.reminder.dailyLimit,3);assert.equal(result.reminder.startHour,23);assert.equal(result.reminder.enabled,true);
+ assert.equal(result.schemaVersion,4);assert.equal(result.energy,30);assert.equal(result.reminder.dailyLimit,3);assert.equal(result.reminder.startHour,23);assert.equal(result.reminder.enabled,true);
 });
 test('repository persists preferences, exports and clears only personal key',()=>{
  const memory=new Map<string,string>();Object.assign(globalThis,{window:{},localStorage:{getItem:(k:string)=>memory.get(k)||null,setItem:(k:string,v:string)=>memory.set(k,v),removeItem:(k:string)=>memory.delete(k)}});

@@ -14,6 +14,6 @@ export async function requestNotifications(){
  try {const permission=await Notification.requestPermission();return {granted:permission==='granted',message:browserNotificationCapability().message};}catch{return {granted:false,message:'此设备无法申请系统通知，站内提醒仍可使用。'};}
 }
 export async function displayNotification() {
- if(typeof Notification==='undefined'||Notification.permission!=='granted')return;
- try {const registration=await navigator.serviceWorker?.getRegistration();if(registration)await registration.showNotification('给自己一个小间隙？',{body:'确认当前场景，挑一项方便的微活动。',tag:'cyberhealth-break'});else new Notification('给自己一个小间隙？',{body:'挑一项现在做得到的微活动。',tag:'cyberhealth-break'});}catch { /* foreground dialog remains available */ }
+ if(typeof Notification==='undefined'||Notification.permission!=='granted')return 'unsupported' as const;
+ try {const registration=await navigator.serviceWorker?.getRegistration();if(registration)await registration.showNotification('给自己一个小间隙？',{body:'确认当前场景，挑一项方便的微活动。',tag:'cyberhealth-break'});else new Notification('给自己一个小间隙？',{body:'挑一项现在做得到的微活动。',tag:'cyberhealth-break'});return 'api-accepted' as const;}catch {return 'failed' as const;}
 }
