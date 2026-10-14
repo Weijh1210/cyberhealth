@@ -1,0 +1,21 @@
+import type {Activity,Duration,FocusArea,Scene} from './types';
+
+type Card={id:string;title:string;nameEn:string;focus:FocusArea[];duration:Duration;level:'L1'|'L2'|'L3';space:'seat'|'small'|'spacious'|'outdoor';source:string;steps:string[];warning:string;equipment?:string[]};
+const cards:Card[]=[
+ {id:'neck-rotation',title:'颈部缓转',nameEn:'Neck Rotation',focus:['neck'],duration:60,level:'L1',space:'seat',source:'nhs-flexibility',steps:['坐直，肩膀放松，平视前方。','头缓慢转向左侧舒适处，停约 5 秒后回正。','右侧同样进行，按舒适程度每侧最多 3 次。'],warning:'不追求转动角度；颈部症状加重时停止。'},
+ {id:'seated-twist',title:'坐姿轻转身',nameEn:'Seated Upper-body Twist',focus:['upperBack','back'],duration:60,level:'L1',space:'seat',source:'nhs-sitting',steps:['坐稳，双脚落地，双臂交叉搭肩。','骨盆不动，上身向左轻转，舒适处停约 5 秒。','回正后换右侧，慢慢交替。'],warning:'不扭到极限；脊背不适或有限制时避开。',equipment:['stable-chair']},
+ {id:'seated-march',title:'坐姿交替抬脚',nameEn:'Seated Hip March',focus:['hips','legs'],duration:60,level:'L1',space:'seat',source:'nhs-sitting',steps:['坐稳，握住椅边。','屈膝轻抬左腿，再有控制地放下。','左右交替，以舒适幅度进行。'],warning:'保持坐稳，避免后仰；髋膝不适时停止。',equipment:['stable-chair']},
+ {id:'ankle-stretch',title:'脚踝轻伸展',nameEn:'Ankle Stretch',focus:['legs'],duration:60,level:'L1',space:'seat',source:'nhs-sitting',steps:['坐稳扶椅边，将一条腿舒适地伸出。','脚尖缓慢向前伸，再朝自己收回。','轻放下，换另一侧。'],warning:'先确认桌下有余地，不锁膝或勉强抬腿。',equipment:['stable-chair']},
+ {id:'chest-open',title:'坐姿舒展胸前',nameEn:'Seated Chest Stretch',focus:['shoulders','upperBack'],duration:60,level:'L2',space:'spacious',source:'nhs-sitting',steps:['坐稳，双肩向后下方放松。','双臂向两侧舒展，胸前轻轻打开。','舒适处停 5–10 秒，放松再重复。'],warning:'需两侧空位；不勉强打开肩臂。',equipment:['stable-chair']},
+ {id:'sit-to-stand',title:'坐站换个姿势',nameEn:'Sit to Stand',focus:['legs','fullBody'],duration:60,level:'L2',space:'small',source:'nhs-strength',steps:['在稳固椅上坐好，双脚与髋同宽。','身体略向前，慢慢站起，目视前方。','有控制地坐回，按能力最多重复 5 次。'],warning:'有站立、平衡或下肢活动限制时避开。',equipment:['stable-chair']},
+ {id:'calf-raises',title:'扶椅轻提踵',nameEn:'Supported Calf Raises',focus:['legs'],duration:60,level:'L2',space:'small',source:'nhs-strength',steps:['站在稳固椅后，扶好椅背。','慢慢抬起双脚后跟，再缓缓落下。','保持平稳，按舒适程度最多 5 次。'],warning:'保持支撑，不闭眼；平衡不稳时避开。',equipment:['stable-chair']},
+ {id:'side-bend',title:'站姿轻侧伸',nameEn:'Standing Side Bend',focus:['lowerBack'],duration:60,level:'L2',space:'small',source:'nhs-flexibility',steps:['站稳，双脚与髋同宽。','一只手沿腿侧缓缓下移，躯干轻侧倾。','舒适处停约 2 秒回正，换侧。'],warning:'不向前后弯折；腰背不适或平衡受限时避开。'},
+ {id:'side-walk',title:'小步侧向走',nameEn:'Sideways Walking',focus:['legs','fullBody'],duration:180,level:'L3',space:'spacious',source:'nhs-balance',steps:['确认空地平整，旁边有墙可扶。','双膝微松，一只脚缓慢向侧边跨小步。','另一脚跟上，向两边从容交替。'],warning:'平衡受限时避开，不交叉双脚。',equipment:['wall']},
+ {id:'easy-walk',title:'从容走一段',nameEn:'Easy Walk',focus:['legs','fullBody'],duration:300,level:'L3',space:'outdoor',source:'nhs-walking',steps:['选一段平整、安全的路线，穿舒适鞋。','收起手机，用轻松的节奏步行。','按自己的能力返回，不追求距离。'],warning:'注意天气与交通；不适即停，不边走边看屏幕。'},
+];
+export const sourceCheckedActivities:Activity[]=cards.map(c=>({
+ id:c.id,title:c.title,description:'换一换固定姿势，按自己的舒适程度慢慢来。',durationSeconds:c.duration,steps:c.steps,
+ sceneTags:(c.space==='outdoor'?['home','outdoor']:c.level==='L1'?['library','office','home','classroom']:['office','home','outdoor']) as Scene[],
+ requiresStanding:['small','outdoor'].includes(c.space)||c.id==='side-walk',requiresOutdoor:c.space==='outdoor',requiresAudio:false,movementLevel:c.space==='outdoor'||c.id==='side-walk'?'walk':'gentle',themeTags:[],focusTags:c.focus,precautions:c.warning,source:'NHS 公开动作资料，中文步骤为概述；计时为产品设计。',reviewStatus:'source-checked',kind:'来源核对动作',icon:c.space==='outdoor'?'↝':'〰',
+ meta:{nameEn:c.nameEn,category:c.space==='outdoor'?'walk':'micro-movement',level:c.level,targetBodyParts:c.focus,posture:c.space==='seat'||c.id==='chest-open'?'seated':c.space==='outdoor'||c.id==='side-walk'?'walking':'standing',spaceRequired:c.space,noiseLevel:'silent',equipmentRequired:c.equipment||[],repetitions:null,holdSeconds:null,commonMistakes:['追赶计时进度或勉强达到幅度'],expectedBenefits:'短暂改变固定姿势；不承诺医学效果。',safetyWarnings:[c.warning,'疼痛、眩晕、麻木或无力时停止；近期损伤、手术或已有活动限制时先咨询专业人员。'],contraindications:['相关部位活动引起症状、或专业人员已要求限制此类活动时不适用。'],evidenceSourceIds:[c.source],evidenceType:'B',evidenceReviewStatus:'source-checked-technique',traditionalCultureTags:[],animationAsset:null,isActive:true},
+}));

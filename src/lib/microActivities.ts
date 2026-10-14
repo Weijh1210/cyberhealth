@@ -1,3 +1,4 @@
+import {sourceCheckedActivities} from './sourceCheckedActivities';
 import type {Activity,FocusArea} from './types';
 
 const commonSafety=['出现明显疼痛加重、眩晕、麻木或无力时立即停止，并寻求适当医疗评估。','近期损伤、手术或已有活动限制时，先向合适的医疗专业人员确认。'];
@@ -12,4 +13,4 @@ export const plannedActions:PlannedAction[]=[
  ['seated-pelvic-tilt','坐姿骨盆前后倾','Seated Pelvic Tilt','L1',['lowerBack','hips']],['ankle-pumps','脚踝泵动','Ankle Pumps','L1',['legs']],['visual-break','远眺与自然眨眼','Visual Break','L1',['eyes']],['hand-mobility','手指张合','Hand Mobility','L1',['wrists']],
  ['neck-rotation','颈部左右缓转','Neck Rotation','L2',['neck']],['neck-side-tilt','颈部轻柔侧倾','Neck Side Tilt','L2',['neck']],['shoulder-circles','肩部绕环','Shoulder Circles','L2',['shoulders']],['standing-stretch','站立伸展','Standing Stretch','L2',['fullBody']],['thoracic-rotation','胸椎旋转','Thoracic Rotation','L2',['upperBack']],['sit-to-stand','坐站交替','Sit to Stand','L2',['legs']],['march-in-place','原地踏步','March in Place','L2',['legs']],['calf-raises','小腿提踵','Calf Raises','L2',['legs']],['wall-push-up','靠墙俯卧撑','Wall Push Up','L2',['upperBack']],
  ['baduanjin-1','八段锦：两手托天理三焦','Baduanjin 1','L3',['fullBody']],['baduanjin-2','八段锦：左右开弓似射雕','Baduanjin 2','L3',['fullBody']],['baduanjin-3','八段锦：调理脾胃须单举','Baduanjin 3','L3',['fullBody']],['baduanjin-4','八段锦：五劳七伤往后瞧','Baduanjin 4','L3',['fullBody']],['baduanjin-full','八段锦完整练习入口','Baduanjin Full Practice','L3',['fullBody']],['tai-chi-basic','太极基础动作','Tai Chi Basics','L3',['fullBody']],['easy-walk','轻松步行','Easy Walking','L3',['fullBody']],['brisk-walk','快走','Brisk Walking','L3',['fullBody']],['basic-squat','基础深蹲','Basic Squat','L3',['legs']]
-].map(([id,nameZh,nameEn,level,targetBodyParts])=>({id:id as string,nameZh:nameZh as string,nameEn:nameEn as string,level:level as PlannedAction['level'],targetBodyParts:targetBodyParts as FocusArea[],status:'needs-review' as const}));
+].filter(([id])=>!sourceCheckedActivities.some(a=>a.id===id)).map(([id,nameZh,nameEn,level,targetBodyParts])=>({id:id as string,nameZh:nameZh as string,nameEn:nameEn as string,level:level as PlannedAction['level'],targetBodyParts:targetBodyParts as FocusArea[],status:'needs-review' as const}));

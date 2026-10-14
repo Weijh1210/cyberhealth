@@ -30,7 +30,7 @@ test('scene, space, time, quiet and discomfort are hard filters',()=>{
  assert.notEqual(recommend({scene:'library',duration:30,mobility:'seated',bodyNeed:'neck'},feedback,[],'season',[],profile)?.id,'chin-tuck');
 });
 test('unreviewed planned motions never enter automatic recommendations',()=>{
- assert.equal(plannedActions.length,22);
+ assert.equal(plannedActions.length,18);
  assert.ok(plannedActions.every(a=>a.status==='needs-review'));
  assert.ok(!candidates({scene:'home',duration:1200,mobility:'spacious'}).some(a=>plannedActions.some(p=>p.id===a.id)));
 });
