@@ -15,3 +15,4 @@
 ## 阶段记录
 - T00：已完成审计；基线测试待执行。
 - T01：数据升级 v3，保留旧键与记录；Repository 边界、跨标签存储订阅、JSON 导出、日历日成长统计；19 项测试与类型检查通过。变更：types/store、data/repository、growth、repository.test、迁移测试。
+- T02：五步可跳过引导、通知主动授权、首页提醒优先、首页/活动/成长/我的四主导航；花园/灵宠/主题保留次级入口；加入真实成长与数据导出。19 项测试与类型检查通过。变更：App/Onboarding/ReminderFields、notifications、app.css。
