@@ -18,8 +18,8 @@ test('library neck and office shoulder needs select the two reviewed 30-second c
 });
 test('scene, space, time, quiet and discomfort are hard filters',()=>{
  const profile={...initialData().profile,quiet:true,smallMovement:true};
- assert.equal(recommend({scene:'home',duration:180,mobility:'spacious',bodyNeed:'fullBody'},[],[],'season',[],profile)?.id,'room-loop');
- assert.equal(recommend({scene:'home',duration:180,mobility:'spacious',bodyNeed:'fullBody'},[],[],'green',[],profile)?.id,'room-loop');
+ assert.equal(recommend({scene:'home',duration:180,mobility:'spacious',bodyNeed:'fullBody'},[],[],'season',[],profile)?.reviewStatus,'source-checked');
+ assert.equal(recommend({scene:'home',duration:180,mobility:'spacious',bodyNeed:'fullBody'},[],[],'green',[],profile)?.reviewStatus,'source-checked');
  const transit=candidates({scene:'transit',duration:60,mobility:'seated'},profile);
  assert.ok(transit.every(a=>a.meta.level==='L1'&&a.meta.spaceRequired==='seat'&&a.meta.noiseLevel==='silent'));
  assert.ok(!transit.some(a=>a.id==='chin-tuck'));

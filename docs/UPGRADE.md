@@ -17,3 +17,4 @@
 - T01：数据升级 v3，保留旧键与记录；Repository 边界、跨标签存储订阅、JSON 导出、日历日成长统计；19 项测试与类型检查通过。变更：types/store、data/repository、growth、repository.test、迁移测试。
 - T02：五步可跳过引导、通知主动授权、首页提醒优先、首页/活动/成长/我的四主导航；花园/灵宠/主题保留次级入口；加入真实成长与数据导出。19 项测试与类型检查通过。变更：App/Onboarding/ReminderFields、notifications、app.css。
 - T03：动作库增加 10 张来源核对卡，共 12 张、覆盖 L1/L2/L3；旧演示完整保留；来源独立可查、步骤/安全/不适用/器械信息结构化。机构资料核对不等于专业医学审校，剂量仍为产品设计。20 项测试与类型检查通过。变更：sourceCheckedActivities、activities、microActivities、evidenceSources、types/store、content.test。
+- T04：推荐仅放行来源核对卡，场景/姿势/走动空间/时长/器械/用户排除均硬过滤；独立 35/25/20/20 评分与近期多样性，显示推荐原因与不适合入口。23 项测试与类型检查通过。变更：recommend、App、recommendation.test、旧推荐测试。
