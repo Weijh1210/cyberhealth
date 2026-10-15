@@ -4,10 +4,10 @@ export type RemoteGarden={id:string;members:GardenMember[];contributions:GardenC
 let client:SupabaseClient|null=null;
 let readyPromise:Promise<SupabaseClient>|null=null;
 export const remoteConfigured=Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL&&process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-function getClient(){if(!remoteConfigured)throw new Error('尚未配置 Supabase。');return client??=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);}
-async function ready(){return readyPromise??=(async()=>{const supabase=getClient();let {data}=await supabase.auth.getSession();if(!data.session){const result=await supabase.auth.signInAnonymously();if(result.error)throw result.error;data={session:result.data.session};}if(!data.session)throw new Error('匿名身份初始化失败。请检查 Supabase Auth 设置。');return supabase;})().catch(e=>{readyPromise=null;throw e;});}
+export function getSupabaseClient(){if(!remoteConfigured)throw new Error('尚未配置 Supabase。');return client??=createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!,process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);}
+async function ready(){return readyPromise??=(async()=>{const supabase=getSupabaseClient();let {data}=await supabase.auth.getSession();if(!data.session){const result=await supabase.auth.signInAnonymously();if(result.error)throw result.error;data={session:result.data.session};}if(!data.session)throw new Error('匿名身份初始化失败。请检查 Supabase Auth 设置。');return supabase;})().catch(e=>{readyPromise=null;throw e;});}
 async function rpc<T>(name:string,args:Record<string,unknown>={}){const supabase=await ready();const {data,error}=await supabase.rpc(name,args);if(error)throw error;return data as T;}
-export async function remoteExistingUserId(){const supabase=getClient();const {data}=await supabase.auth.getSession();return data.session?.user.id||null;}
+export async function remoteExistingUserId(){const supabase=getSupabaseClient();const {data}=await supabase.auth.getSession();return data.session?.user.id||null;}
 export async function remoteUserId(){const supabase=await ready();const {data}=await supabase.auth.getUser();if(!data.user)throw new Error('无法读取当前匿名身份。');return data.user.id;}
 export async function loadRemoteGarden(){return rpc<RemoteGarden|null>('my_garden_snapshot');}
 export async function createRemoteGarden(nickname:string){return rpc<string>('create_garden',{p_nickname:nickname});}
