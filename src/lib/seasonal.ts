@@ -1,3 +1,5 @@
+import dates from './solarDates.json';
+import {seasonalContents} from './seasonalContent';
 // Hong Kong Observatory 2026 calendar; date-level theme uses Asia/Shanghai (UTC+8).
 // Source: https://www.hko.gov.hk/en/gts/time/calendar/text/files/T2026e.txt
 export const solarTerms2026=[
@@ -5,7 +7,9 @@ export const solarTerms2026=[
 ] as const;
 export function currentSolarTerm(now:Date){
  const parts=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(now);const get=(kind:string)=>parts.find(p=>p.type===kind)!.value;
- if(get('year')!=='2026')return null;
- const key=`${get('month')}-${get('day')}`;const term=[...solarTerms2026].reverse().find(([date])=>date<=key);
- return term?{name:term[1],since:`2026-${term[0]}`,note:'按北京时间日期展示，非精确交节时刻'}:null;
+ const year=get('year');if(!['2025','2026','2027'].includes(year))return null;
+ const rows:readonly (readonly string[])[]=year==='2026'?solarTerms2026.map(([date,name])=>[`2026-${date}`,name]):dates[year as keyof typeof dates];
+ const key=`${year}-${get('month')}-${get('day')}`;let index=-1;for(let i=0;i<rows.length;i++)if(rows[i][0]<=key)index=i;
+ if(index<0){if(year==='2025')return null;const previous=year==='2026'?dates['2025'].at(-1)![0]:'2026-12-22';return {name:'冬至',since:previous,note:'按北京时间日期展示，非精确交节时刻',content:seasonalContents[23]};}
+ return {name:seasonalContents[index].name.zh,since:rows[index][0],note:'按北京时间日期展示，非精确交节时刻',content:seasonalContents[index]};
 }

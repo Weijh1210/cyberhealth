@@ -1,0 +1,3 @@
+import {localDay} from './date';import {fortuneCards} from './seasonalContent';import type {AppData} from './types';
+export function drawDailyFortune(data:AppData,now:Date,random:number):AppData {const day=localDay(now);if(data.dailyDraws[day])return data;const index=Math.min(fortuneCards.length-1,Math.max(0,Math.floor(random*fortuneCards.length)||0));return {...data,dailyDraws:{...data.dailyDraws,[day]:{cardId:fortuneCards[index].id,drawnAt:now.toISOString()}}};}
+export function drawnFortune(data:AppData,now:Date){return fortuneCards.find(c=>c.id===data.dailyDraws[localDay(now)]?.cardId)||null;}
