@@ -45,8 +45,8 @@ begin
  insert into public.personal_settings(user_id) values(u) on conflict do nothing;
  select revision into version from public.personal_settings where user_id=u for update;
  if p_preferences is not null and p_preferences<>'null'::jsonb then
- if p_expected_revision<>version then raise exception 'Preference conflict: reload before choosing'; end if;
- if jsonb_typeof(p_preferences)<>'object' or jsonb_typeof(p_preferences->'profile')<>'object' or jsonb_typeof(p_preferences->'reminder')<>'object' or octet_length(p_preferences::text)>32768 then raise exception 'Invalid preferences'; end if;
+ if p_expected_revision is null or p_expected_revision<>version then raise exception 'Preference conflict: reload before choosing'; end if;
+ if jsonb_typeof(p_preferences)<>'object' or coalesce(jsonb_typeof(p_preferences->'profile'),'null')<>'object' or coalesce(jsonb_typeof(p_preferences->'reminder'),'null')<>'object' or octet_length(p_preferences::text)>32768 then raise exception 'Invalid preferences'; end if;
  update public.personal_settings set preferences=p_preferences,revision=revision+1,updated_at=now() where user_id=u;
  end if;
  foreach k in array array['sessions','feedback','reminderEvents','recommendationEvents'] loop

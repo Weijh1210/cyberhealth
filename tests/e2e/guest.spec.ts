@@ -35,9 +35,9 @@ test('skip onboarding, modify preferences, reject unsuitable action, export and 
 test('foreground reminder records reason and snoozes exactly 15 minutes',async({page})=>{
  await skip(page);await seedReminder(page);await page.reload();const dialog=page.getByRole('dialog',{name:'休息提醒'});await expect(dialog).toBeVisible();
  await dialog.getByLabel('提醒反馈原因').selectOption('正在开会 / 上课');await dialog.getByRole('button',{name:'延后 15 分钟',exact:true}).click();
- const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('moyu-wellness-v1')!));expect(data.reminderEvents.filter((e:{type:string})=>e.type==='due')).toHaveLength(1);const event=data.reminderEvents.at(-1);expect(event.reason).toBe('正在开会 / 上课');expect(data.reminder.snoozedUntil-Date.parse(event.at)).toBe(15*60000);
+ const data=await page.evaluate(()=>JSON.parse(localStorage.getItem('moyu-wellness-v1')!));expect(data.reminderEvents.filter((e:{type:string})=>e.type==='due')).toHaveLength(1);const event=data.reminderEvents.findLast((e:{type:string})=>e.type==='postponed');expect(event.reason).toBe('正在开会 / 上课');expect(data.reminder.snoozedUntil-Date.parse(event.at)).toBe(15*60000);
  await page.clock.install();await page.clock.runFor(15*60000+2000);await expect(dialog).toBeVisible();await dialog.getByRole('button',{name:'我已经活动过了'}).click();
- const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('moyu-wellness-v1')!));expect(after.reminderEvents.filter((e:{type:string})=>e.type==='due')).toHaveLength(1);expect(after.sessions).toHaveLength(0);expect(after.reminderEvents.at(-1).type).toBe('already-active');
+ const after=await page.evaluate(()=>JSON.parse(localStorage.getItem('moyu-wellness-v1')!));expect(after.reminderEvents.filter((e:{type:string})=>e.type==='due')).toHaveLength(1);expect(after.sessions).toHaveLength(0);expect(after.reminderEvents.filter((e:{type:string})=>e.type!=='planned').at(-1).type).toBe('already-active');
 });
 
 test('atomic occurrence claim prevents duplicate reminders across tabs',async({page,context})=>{

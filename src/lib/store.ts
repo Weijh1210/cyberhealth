@@ -13,7 +13,7 @@ export function migrateData(raw:unknown):AppData{
  const base=initialData();if(!raw||typeof raw!=='object')return base;const d=raw as Partial<Omit<AppData,'schemaVersion'>> & {schemaVersion?:number};
  const preference:Preference={scene:scene(d.preference?.scene),duration:durations.includes(d.preference?.duration as Duration)?d.preference!.duration:180,mobility:mobilities.includes(d.preference?.mobility as Mobility)?d.preference!.mobility:'seated',availableEquipment:Array.isArray(d.preference?.availableEquipment)?d.preference.availableEquipment.filter(x=>['stable-chair','wall'].includes(x)):[],bodyNeed:focusAreas.includes(d.preference?.bodyNeed as FocusArea)?d.preference!.bodyNeed:undefined};
  const sessions=Array.isArray(d.sessions)?d.sessions.filter(validSession).filter((s,i,all)=>all.findIndex(x=>x.id===s.id)===i):[];
- const feedback=Array.isArray(d.feedback)?d.feedback.filter(f=>f&&typeof f.activityId==='string'&&['liked','unsuitable','uncomfortable','too-easy','too-hard','scene-mismatch','never','neutral'].includes(f.value)):[];
+ const feedback=Array.isArray(d.feedback)?d.feedback.filter(f=>f&&typeof f.activityId==='string'&&['liked','unsuitable','uncomfortable','too-easy','too-hard','scene-mismatch','never','neutral','restored'].includes(f.value)):[];
  const reminder={...reminderDefault(),...(d.reminder&&typeof d.reminder==='object'?d.reminder:{})};
  // Normalize new settings without losing existing histories or garden identities.
  reminder.dailyLimit=Number.isFinite(reminder.dailyLimit)?Math.max(1,Math.min(12,Math.floor(reminder.dailyLimit))):3;

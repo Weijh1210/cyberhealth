@@ -1,9 +1,10 @@
+import {excludedInScene} from './exclusions';
 import {activities} from './activities';
 import type {Activity,Feedback,FocusArea,Preference,Session,UserProfile,RecommendationEvent} from './types';
 function related(a:FocusArea,b:FocusArea){return a===b||(a==='neck'&&b==='shoulders')||(a==='back'&&['upperBack','lowerBack'].includes(b))||(b==='back'&&['upperBack','lowerBack'].includes(a));}
 export function matches(a:Activity,p:Preference,profile?:UserProfile,feedback:Feedback[]=[]){
  if(!a.meta.isActive||a.reviewStatus!=='source-checked'||a.meta.evidenceReviewStatus!=='source-checked-technique')return false;
- if(feedback.some(f=>f.activityId===a.id&&(['unsuitable','uncomfortable','never'].includes(f.value)||(f.value==='scene-mismatch'&&f.scene===p.scene))))return false;
+ if(excludedInScene(feedback,a.id,p.scene))return false;
  if(!a.sceneTags.includes(p.scene)||a.durationSeconds>p.duration)return false;
  if((a.requiresStanding||a.meta.posture==='standing'||a.meta.posture==='walking')&&p.mobility==='seated')return false;
  if((a.requiresOutdoor||a.meta.spaceRequired==='outdoor')&&p.mobility!=='outside')return false;
@@ -24,7 +25,7 @@ export function recommendationScore(a:Activity,p:Preference,feedback:Feedback[],
  const focusFit=focus.some(x=>a.meta.targetBodyParts.some(y=>related(x,y)))?1:.2;
  const history=sessions.filter(s=>s.activityId===a.id);
  const latest=[...feedback].reverse().find(f=>f.activityId===a.id);
- const preference=(latest?.value==='liked'?1:latest?.value==='too-hard'?.1:latest?.value==='too-easy'?.3:0.5)+(history.length?history.filter(s=>s.status==='completed').length/history.length*.25:0);
+ const preference=(latest?.value==='liked'?1:latest?.value==='too-hard'?0.1:latest?.value==='too-easy'?0.3:0.5)+(history.length?history.filter(s=>s.status==='completed').length/history.length*.25:0);
  const recent=sessions.filter(s=>s.status==='completed').slice(-5).reverse();
  const index=recent.findIndex(s=>s.activityId===a.id);
  const recentExposures=exposures.filter(e=>e.scene===p.scene).slice(-8).reverse();
