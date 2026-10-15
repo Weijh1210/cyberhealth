@@ -10,3 +10,24 @@ test('personal SQL: owner RLS, no direct writes, immutable imports, revision con
  await identity(db,B);assert.equal((await db.query('select * from public.personal_events')).rows.length,0);const second=await db.query<{snapshot:{sessions:unknown[]}}>('select public.personal_snapshot_v1() as snapshot');assert.equal(second.rows[0].snapshot.sessions.length,0);
  await identity(db,A,true);await assert.rejects(db.exec('select public.personal_snapshot_v1()'),/Permanent account/);
  }finally{await db.close();}});
+
+test('garden SQL: two accounts, no third member, safe tokens, capped unique rewards, private histories and exit transfer',async()=>{
+ const {pgcrypto}=await import('@electric-sql/pglite/contrib/pgcrypto');const db=new PGlite({extensions:{pgcrypto}});const C='cccccccc-cccc-cccc-cccc-cccccccccccc';
+ try{await db.exec(await readFile('supabase/tests/bootstrap.sql','utf8'));await db.exec(`create function auth.jwt() returns jsonb language sql stable as $$select coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb$$;grant execute on function auth.jwt() to authenticated;`);
+ for(const path of ['001_garden.sql','002_personal_sync.sql','003_garden_p1.sql'])await db.exec(await readFile(`supabase/migrations/${path}`,'utf8'));
+ await identity(db,A);const g=(await db.query<{id:string}>("select public.create_garden('甲') id")).rows[0].id;
+ const token=(await db.query<{token:string}>('select public.create_garden_invite() token')).rows[0].token;assert.ok(token.length>=48);await assert.rejects(db.exec('select public.create_garden_invite()'),/60 seconds/);
+ await identity(db,B);await db.query("select public.accept_garden_invite($1,'乙')",[token]);await assert.rejects(db.query("select public.accept_garden_invite($1,'乙')",[token]),/Already/);
+ await identity(db,C);await assert.rejects(db.query("select public.accept_garden_invite($1,'丙')",[token]),/expired|used|full/i);assert.equal((await db.query('select * from public.gardens')).rows.length,0);await assert.rejects(db.query('select * from public.garden_invites'),/permission denied/);
+ await identity(db,A);await assert.rejects(db.exec("select public.legacy_create_garden('越权')"),/permission denied/);
+ await db.exec('select public.send_rest_invite()');await assert.rejects(db.exec('select public.send_rest_invite()'),/30 minutes/);
+ // Backdate the test garden only, to emulate activities after membership without wall-clock sleeps.
+ await db.exec(`reset role;update public.gardens set created_at=now()-interval '10 minutes' where id='${g}'`);await identity(db,A);
+ for(let i=0;i<6;i++){const session={id:`session-${i}`,activityId:'chin-tuck',status:'completed',startedAt:new Date(Date.now()-60000).toISOString(),completedAt:new Date().toISOString()};await db.query('select public.sync_personal_v1($1,$2,$3)',[0,null,{sessions:[session]}]);const r=(await db.query<{r:{awarded:boolean;reason?:string}}>('select public.complete_garden_activity($1,$2) r',[session.id,'chin-tuck'])).rows[0].r;assert.equal(r.awarded,i<5);if(i===5)assert.equal(r.reason,'daily-limit');}
+ const duplicate=(await db.query<{r:{awarded:boolean;reason:string}}>("select public.complete_garden_activity('session-0','chin-tuck') r")).rows[0].r;assert.equal(duplicate.reason,'duplicate');assert.equal(duplicate.awarded,false);
+ await identity(db,B);assert.equal((await db.query('select * from public.personal_events')).rows.length,0);const snapshot=(await db.query<{s:{contributions:Record<string,unknown>[]}}>('select public.my_garden_snapshot() s')).rows[0].s;assert.equal(snapshot.contributions.length,5);assert.ok(snapshot.contributions.every(c=>!('activityId'in c)&&!('sessionId'in c)));
+ await identity(db,A);await db.exec('select public.leave_garden()');assert.equal((await db.query('select * from public.gardens')).rows.length,0);
+ await identity(db,B);const owner=(await db.query<{s:{ownerId:string;contributions:unknown[]}}>('select public.my_garden_snapshot() s')).rows[0].s;assert.equal(owner.ownerId,B);assert.equal(owner.contributions.length,5);await identity(db,C);await assert.rejects(db.query("select public.accept_garden_invite($1,'丙')",[token]),/not found/i);
+ await identity(db,A,true);await assert.rejects(db.exec("select public.create_garden('匿名')"),/Permanent/);
+ }finally{await db.close();}
+});
