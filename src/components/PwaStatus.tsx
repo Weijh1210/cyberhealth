@@ -5,6 +5,6 @@ export default function PwaStatus(){const [message,setMessage]=useState('');useE
  // Production assets have stable hashes; development HMR assets must not be cached.
  if(process.env.NODE_ENV!=='production')return;
  navigator.serviceWorker.register('/sw.js',{scope:'/'}).catch(()=>setMessage('离线缓存暂不可用，联网使用与本地记录不受影响。'));
- const changed=()=>setMessage(navigator.onLine?'':'当前离线：已缓存页面和本地活动记录可用，好友同步需联网。');
+ const changed=()=>setMessage(navigator.onLine?'':'当前离线：已缓存页面和本地活动记录可用。');
  changed();window.addEventListener('online',changed);window.addEventListener('offline',changed);return()=>{window.removeEventListener('online',changed);window.removeEventListener('offline',changed);};
  },[]);return message?<div className="offline-status" role="status">{message}</div>:null;}

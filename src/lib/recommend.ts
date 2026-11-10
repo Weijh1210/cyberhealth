@@ -4,16 +4,24 @@ import type {Activity,Feedback,FocusArea,Preference,Session,UserProfile,Recommen
 function related(a:FocusArea,b:FocusArea){return a===b||(a==='neck'&&b==='shoulders')||(a==='back'&&['upperBack','lowerBack'].includes(b))||(b==='back'&&['upperBack','lowerBack'].includes(a));}
 export function matches(a:Activity,p:Preference,profile?:UserProfile,feedback:Feedback[]=[]){
  if(!a.meta.isActive||a.reviewStatus!=='source-checked'||a.meta.evidenceReviewStatus!=='source-checked-technique')return false;
+ if(a.content?.type==='traditional'){
+  const {guide}=a.content;
+  if(!guide.review?.reviewer.trim()||!guide.review.record.trim()||!Number.isFinite(Date.parse(guide.review.reviewedAt))||!guide.source?.trim()||guide.form==='unspecified'||guide.adaptation==='pending'||!guide.applicableConditions?.trim()||!guide.stopGuidance?.trim())return false;
+ }
  if(excludedInScene(feedback,a.id,p.scene))return false;
  if(!a.sceneTags.includes(p.scene)||a.durationSeconds>p.duration)return false;
- if((a.requiresStanding||a.meta.posture==='standing'||a.meta.posture==='walking')&&p.mobility==='seated')return false;
- if((a.requiresOutdoor||a.meta.spaceRequired==='outdoor')&&p.mobility!=='outside')return false;
- if(a.meta.posture==='walking'&&!['spacious','outside'].includes(p.mobility))return false;
- if(a.meta.spaceRequired==='spacious'&&!['spacious','outside'].includes(p.mobility))return false;
- if(a.meta.spaceRequired==='small'&&p.mobility==='seated')return false;
- if(profile?.quiet&&a.meta.noiseLevel!=='silent')return false;
+ const posture=p.posture??(p.mobility==='seated'?'seated':'any');
+ const space=p.space??({seated:'seat',standing:'small',spacious:'spacious',outside:'outdoor'} as const)[p.mobility];
+ const upright=a.requiresStanding||a.meta.posture==='standing'||a.meta.posture==='walking';
+ if(posture==='seated'&&(!['seated','either'].includes(a.meta.posture)||upright))return false;
+ if(posture==='upright'&&!upright)return false;
+ const spaces=['seat','small','spacious','outdoor'];
+ if(spaces.indexOf(a.meta.spaceRequired)>spaces.indexOf(space))return false;
+ if(a.requiresOutdoor&&space!=='outdoor')return false;
+ if(a.meta.posture==='walking'&&spaces.indexOf(space)<2)return false;
+ if((p.quiet??profile?.quiet)&&a.meta.noiseLevel!=='silent')return false;
  if(['library','classroom'].includes(p.scene)&&(a.meta.level!=='L1'||a.meta.noiseLevel!=='silent'||a.meta.attentionLevel!=='low'))return false;
- if(profile?.smallMovement&&a.meta.level==='L3')return false;
+ if(p.smallMovement===true?a.meta.level!=='L1':p.smallMovement===undefined&&profile?.smallMovement&&a.meta.level==='L3')return false;
  if(a.requiresAudio||a.meta.equipmentRequired.some(item=>!p.availableEquipment?.includes(item)))return false;
  return true;
 }

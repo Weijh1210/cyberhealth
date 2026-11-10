@@ -1,11 +1,22 @@
+import type {Courtyard} from './courtyard';
+import type {JourneyVisit} from './journey';
 export type Scene = 'library' | 'office' | 'home' | 'classroom' | 'transit' | 'outdoor' | 'other';
 export type Mobility = 'seated' | 'standing' | 'spacious' | 'outside';
 export type Duration = 30 | 60 | 180 | 300 | 600 | 1200;
 export type FocusArea = 'eyes' | 'neck' | 'shoulders' | 'upperBack' | 'lowerBack' | 'wrists' | 'hips' | 'legs' | 'fullBody' | 'back' | 'general';
 export type EvidenceGrade = 'A'|'B'|'C'|'D';
 export type ActionMetadata = {nameEn:string;category:'micro-movement'|'movement'|'walk'|'mindful-break'|'culture';level:'L1'|'L2'|'L3';targetBodyParts:FocusArea[];posture:'seated'|'standing'|'walking'|'either';spaceRequired:'seat'|'small'|'spacious'|'outdoor';attentionLevel:'low'|'noticeable';noiseLevel:'silent'|'low';equipmentRequired:string[];repetitions:number|null;holdSeconds:number|null;commonMistakes:string[];expectedBenefits:string;safetyWarnings:string[];contraindications:string[];evidenceSourceIds:string[];evidenceType:EvidenceGrade;evidenceReviewStatus:'source-checked-technique'|'product-design-pending-review'|'needs-professional-review';traditionalCultureTags:string[];animationAsset:string|null;isActive:boolean};
-export type Activity = { id:string; title:string; description:string; durationSeconds:Duration; steps:string[]; sceneTags:Scene[]; requiresStanding:boolean; requiresOutdoor:boolean; requiresAudio:boolean; movementLevel:'still'|'gentle'|'walk'; themeTags:string[]; focusTags:FocusArea[]; precautions:string; source:string; reviewStatus:'demo-pending-review'|'source-checked'; kind:string; icon:string; meta:ActionMetadata };
-export type Preference = { scene:Scene; duration:Duration; mobility:Mobility; bodyNeed?:FocusArea; availableEquipment?:string[] };
+export type TraditionalGuide = {
+ form:'routine'|'single'|'unspecified';
+ source:string|null;
+ adaptation:'original'|'adapted'|'pending';
+ applicableConditions:string|null;
+ stopGuidance:string|null;
+ review:{reviewer:string;reviewedAt:string;record:string}|null;
+};
+export type ActivityContent = {type:'daily'}|{type:'traditional';guide:TraditionalGuide};
+export type Activity = { content?:ActivityContent; id:string; title:string; description:string; durationSeconds:Duration; steps:string[]; sceneTags:Scene[]; requiresStanding:boolean; requiresOutdoor:boolean; requiresAudio:boolean; movementLevel:'still'|'gentle'|'walk'; themeTags:string[]; focusTags:FocusArea[]; precautions:string; source:string; reviewStatus:'demo-pending-review'|'source-checked'; kind:string; icon:string; meta:ActionMetadata };
+export type Preference = { preset?:'desk'|'meeting'|'away'; posture?:'seated'|'any'|'upright'; space?:'seat'|'small'|'spacious'|'outdoor'; quiet?:boolean; smallMovement?:boolean; scene:Scene; duration:Duration; mobility:Mobility; bodyNeed?:FocusArea; availableEquipment?:string[] };
 export type UserProfile = { onboardingComplete:boolean; commonScenes:Scene[]; focusAreas:FocusArea[]; quiet:boolean; smallMovement:boolean; mobility:Mobility; duration:Duration };
 export type Session = { id:string; activityId:string; preference:Preference; startedAt:string; status:'running'|'paused'|'ready'|'completed'|'exited'; deadlineAt:number|null; remainingSeconds:number; reminderId?:string; source?:'manual'|'reminder'|'garden-invite'; restInviteId?:string; completedAt?:string; note?:string; reward?:number };
 export type RecommendationEvent={id:string;activityId:string;scene:Scene;at:string};
@@ -19,4 +30,4 @@ export type GardenInvite = { token:string; createdAt:string; expiresAt:string; s
 export type RestInvite = { id:string; senderId:string; recipientId:string; createdAt:string; expiresAt:string; status:'pending'|'now'|'later'|'ignored'|'participated'|'expired'; activitySessionId?:string; participationStartedAt?:string };
 export type GardenContribution = { id:string; memberId:string; sessionId?:string; activityId?:string; at?:string };
 export type LocalGarden = { id:string; createdAt:string; members:GardenMember[]; invite:GardenInvite|null; restInvites:RestInvite[]; contributions:GardenContribution[]; actorId:'self'|'friend' };
-export type AppData = { schemaVersion:4;cultureLanguage:'zh'|'en';dailyDraws:Record<string,{cardId:string;drawnAt:string}>; adaptive:AdaptiveSettings;recommendationEvents:RecommendationEvent[]; preference:Preference; profile:UserProfile; currentScene:Scene; currentNeed:FocusArea; companion:CompanionSession|null; reminderEvents:ReminderEvent[]; sessions:Session[]; feedback:Feedback[]; energy:number; swapCount:number; petName:string; reminder:Reminder; gardenDemo:LocalGarden|null; pendingGardenSessions:string[]; themePack:string|null; lastActiveAt:string|null };
+export type AppData = { schemaVersion:4;journey:JourneyVisit[];courtyard:Courtyard;staticLandscape:boolean;cultureLanguage:'zh'|'en';dailyDraws:Record<string,{cardId:string;drawnAt:string}>; adaptive:AdaptiveSettings;recommendationEvents:RecommendationEvent[]; preference:Preference; profile:UserProfile; currentScene:Scene; currentNeed:FocusArea; companion:CompanionSession|null; reminderEvents:ReminderEvent[]; sessions:Session[]; feedback:Feedback[]; energy:number; swapCount:number; petName:string; reminder:Reminder; gardenDemo:LocalGarden|null; pendingGardenSessions:string[]; themePack:string|null; lastActiveAt:string|null };

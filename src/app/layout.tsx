@@ -3,7 +3,7 @@ import '../app.css';
 
 export const metadata: Metadata = {
   title: 'CyberHealth · 摸鱼养生局',
-  description: 'Small Moves, Lasting Habits. 学习与工作的智能微休息助手。',
+  description: '适合办公间隙的微运动助手。',
   appleWebApp:{capable:true,statusBarStyle:'default',title:'摸鱼养生局'},
   icons:{apple:'/icons/icon-192.png'},
 };

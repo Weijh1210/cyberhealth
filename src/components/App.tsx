@@ -1,64 +1,139 @@
 'use client';
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {activityById,activities} from '../lib/activities';
-import {candidates,recommend,recommendationReason} from '../lib/recommend';
-import {dailyTheme,localDay} from '../lib/date';
-import {scheduleReminder,reminderDue,respondToReminder,withReminderPlan} from '../lib/reminders';
+
+import {useEffect,useRef,useState} from 'react';
+import {activityById} from '../lib/activities';
+import {candidates,matches,recommend,recommendationReason} from '../lib/recommend';
+import {localDay} from '../lib/date';
+import {inHourWindow,scheduleReminder,reminderDue,respondToReminder,withReminderPlan} from '../lib/reminders';
 import {claimReminder,clearReminderClaims} from '../data/reminderClaim';
-import {grantCompletion,initialData,petStage} from '../lib/store';
-import type {Activity,AppData,Duration,FocusArea,Mobility,Preference,Scene,Session} from '../lib/types';
+import {grantCompletion,initialData} from '../lib/store';
+import type {Activity,AppData,Preference,Session} from '../lib/types';
 import {remainingSeconds as remaining,transitionSession} from '../lib/execution';
 import {localRepository} from '../data/repository';
 import {growthStats} from '../lib/growth';
 import {browserNotificationCapability,requestNotifications,displayNotification} from '../lib/notifications';
-import ReminderFields from './ReminderFields';
-import {useDialogFocus} from './useDialogFocus';
 import {recordActivityFeedback,recordRecommendation} from '../lib/activityFeedback';
 import {blockedActivities,restoreActivity} from '../lib/exclusions';
+import {conditionsForPreset,durationLabel,supports,type PresetId} from '../lib/breakConditions';
+import {currentSolarTerm} from '../lib/seasonal';
+import ReminderFields from './ReminderFields';
+import {useDialogFocus} from './useDialogFocus';
 import {useAccount} from './useAccount';
-import GrowthInsights from './GrowthInsights';
-import CulturePanel from './CulturePanel';
 import AccountPanel from './AccountPanel';
 import ActivityFeedback from './ActivityFeedback';
 import AdaptiveSettings from './AdaptiveSettings';
 import PwaStatus from './PwaStatus';
 import Onboarding from './Onboarding';
-import GardenPanel from './GardenPanel';
 import TeachingCard from './TeachingCard';
-import {useGarden} from './useGarden';
+import {ConditionFields,PresetPicker,focusLabels,sceneLabel} from './BreakConditions';
+import {JourneyCard} from './Landscape';
+import Courtyard,{CourtyardJournal,useCourtyardWeather} from './Courtyard';
+import {quickBreaks,type Courtyard as Yard,type QuickBreak} from '../lib/courtyard';
+import {activityCategory,TraditionalCard,TraditionalPreview} from './TraditionalCard';
 
-type Page='move'|'garden'|'home'|'activity'|'done'|'pet'|'records'|'settings'|'shop';
-const sceneOptions:{id:Scene;label:string;icon:string}[]=[{id:'office',label:'办公室/工位',icon:'▦'},{id:'library',label:'图书馆/自习室',icon:'▤'},{id:'home',label:'家中/宿舍',icon:'⌂'},{id:'classroom',label:'教室/会议室',icon:'▥'},{id:'transit',label:'公共交通',icon:'◫'},{id:'outdoor',label:'户外/公园',icon:'☼'},{id:'other',label:'其他',icon:'◌'}];
-const mobilityOptions:{id:Mobility;label:string}[]=[{id:'seated',label:'保持坐姿'},{id:'standing',label:'可以站起来'},{id:'spacious',label:'有宽敞空间'},{id:'outside',label:'可以走动 / 外出'}];
-const needOptions:{id:FocusArea;label:string}[]=[{id:'neck',label:'颈肩有些僵硬'},{id:'shoulders',label:'肩背想活动'},{id:'lowerBack',label:'腰背想活动'},{id:'eyes',label:'眼睛累了'},{id:'legs',label:'腿脚想动动'},{id:'fullBody',label:'全身活动'},{id:'general',label:'随便活动一下'}];
-const focusLabels:Record<FocusArea,string>={eyes:'眼睛',neck:'颈部',shoulders:'肩部',upperBack:'上背部',lowerBack:'腰背部',wrists:'手腕/手指',hips:'臀部/髋部',legs:'腿部/脚踝',fullBody:'全身',back:'肩背',general:'一般休息'};
-const nav:{id:Page;label:string;icon:string}[]=[{id:'home',label:'首页',icon:'⌁'},{id:'move',label:'活动',icon:'↝'},{id:'garden',label:'花园',icon:'❧'},{id:'records',label:'成长',icon:'▥'},{id:'settings',label:'我的',icon:'☷'}];
+type Page='home'|'move'|'activity'|'done'|'records'|'settings';
+const nav=[{id:'home',label:'歇一下',icon:'⌂'},{id:'records',label:'手记',icon:'▤'},{id:'settings',label:'我的节奏',icon:'☷'}] as const;
+
+function selectionOf(data:AppData):Preference {
+ return {...data.preference,scene:data.currentScene,bodyNeed:data.currentNeed};
+}
+function emptyAdvice(selection:Preference,data:AppData){
+ const available=(change:Partial<Preference>)=>candidates({...selection,...change},data.profile,data.feedback).length>0;
+ const choices=[
+  [available({duration:1200}),'增加可用时间'],
+  [available({posture:'any'}),'允许坐姿或站姿'],
+  [available({space:'outdoor'}),'选择更宽的活动空间'],
+  [available({smallMovement:false}),'允许更大幅度的动作'],
+  [available({quiet:false}),'允许轻声动作'],
+  [available({availableEquipment:supports.map(([id])=>id)}),'确认现场的支撑条件'],
+ ].filter(([possible])=>possible).map(([,label])=>label);
+ return choices.length?`如果现场允许，可以${choices.join('、')}。`:'请核对场景、时间、姿势和空间，或在「我的」检查已排除动作。';
+}
+
 const uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random()}`;
-const sceneLabel=(s:Scene)=>sceneOptions.find(x=>x.id===s)?.label||'其他';
-const nextLabel=(value:number|null)=>{if(!value)return '未安排';const date=new Date(value);const day=localDay(date),today=localDay(new Date());const tomorrow=localDay(new Date(Date.now()+86400000));const prefix=day===today?'今天':day===tomorrow?'明天':date.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'});return `${prefix} ${date.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;};
-function PetArt(){return <div className="pet-illustration" aria-hidden="true"><div className="pet-ear left"/><div className="pet-ear right"/><div className="pet-body"><div className="pet-eyes"><i/><i/></div><div className="pet-mouth">⌣</div><div className="pet-blush left"/><div className="pet-blush right"/></div><div className="pet-foot left"/><div className="pet-foot right"/></div>}
+const nextLabel=(value:number|null)=>{if(!value)return '未安排';const date=new Date(value);const day=localDay(date),today=localDay(new Date());const nextDay=new Date();nextDay.setDate(nextDay.getDate()+1);const tomorrow=localDay(nextDay);const prefix=day===today?'今天':day===tomorrow?'明天':date.toLocaleDateString('zh-CN',{month:'numeric',day:'numeric'});return `${prefix} ${date.toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}`;};
 export default function App(){const [mounted,setMounted]=useState(false);useEffect(()=>setMounted(true),[]);return mounted?<AccountGate/>:<main className="loading" aria-busy="true">正在打开摸鱼养生局…</main>;}
 function AccountGate(){const account=useAccount();return account.loading?<main className="loading">正在核对账号…</main>:<AppContent key={account.user?.id||'guest'} account={account}/>;}
-function AppContent({account}:{account:ReturnType<typeof useAccount>}){
- const [data,setData]=useState<AppData>(()=>localRepository.read());
- const [page,setPage]=useState<Page>(()=>localRepository.read().sessions.some(s=>['running','paused','ready'].includes(s.status))?'activity':new URLSearchParams(window.location.search).has('gardenInvite')?'garden':'home');
- const [activeId,setActiveId]=useState<string|null>(()=>[...localRepository.read().sessions].reverse().find(s=>['running','paused','ready'].includes(s.status))?.id||null);
- const [now,setNow]=useState(Date.now());const [onboarding,setOnboarding]=useState(()=>!localRepository.read().profile.onboardingComplete);const [editingProfile,setEditingProfile]=useState(false);const [cultureOpen,setCultureOpen]=useState(false);const [suggestion,setSuggestion]=useState<Activity|null>(null);const [seen,setSeen]=useState<string[]>([]);const [reminderActivity,setReminderActivity]=useState<Activity|null>(null);const [reminderSeen,setReminderSeen]=useState<string[]>([]);const [showReminder,setShowReminder]=useState(false);const [note,setNote]=useState('');const [notice,setNotice]=useState('');const [shopId,setShopId]=useState<string|null>(null);
- const scopeKey=localRepository.currentKey();
- const updateData=(f:(d:AppData)=>AppData)=>{if(localRepository.currentKey()!==scopeKey)return;const next=withReminderPlan(f(localRepository.read()),Date.now());if(!localRepository.save(next))setNotice('浏览器无法保存本地数据，请检查存储权限。');setData(next);};
- const checkingReminder=useRef(false);const [reason,setReason]=useState('正在专注');const [pauseUntil,setPauseUntil]=useState(()=>new Date(Date.now()+3600000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16));
- const garden=useGarden(data,updateData,account.user?.id||null);
 
- useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer)},[]);
+function AppContent({account}:{account:ReturnType<typeof useAccount>}){
+ const [data,setData]=useState(()=>localRepository.read());
+ const [activeId,setActiveId]=useState(()=>[...data.sessions].reverse().find(session=>['running','paused','ready'].includes(session.status))?.id??null);
+ const [page,setPage]=useState<Page>(activeId?'activity':'home');
+ const [now,setNow]=useState(Date.now);
+ const [editingProfile,setEditingProfile]=useState<'first'|'edit'|null>(null);
+ const [conditionsOpen,setConditionsOpen]=useState(false);
+ const [quick,setQuick]=useState<QuickBreak|null>(null);
+ const [check,setCheck]=useState(false);
+ const [skipCamera,setSkipCamera]=useState(false);
+ const [lifeDue,setLifeDue]=useState<string[]>([]);
+ const [lifeLabel,setLifeLabel]=useState('');
+ const [lifePrivate,setLifePrivate]=useState(false);
+ const [walking,setWalking]=useState(false);
+ const [lifeTime,setLifeTime]=useState('15:00');
+ const [suggestion,setSuggestion]=useState<Activity|null>(null);
+ const [seen,setSeen]=useState<string[]>([]);
+ const [showReminder,setShowReminder]=useState(false);
+ const [reason,setReason]=useState('正在专注');
+ const [notice,setNotice]=useState('');
+ const [note,setNote]=useState('');
+ const [pauseUntil,setPauseUntil]=useState(()=>new Date(Date.now()+3600000-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16));
+ const checkingReminder=useRef(false);
+ const committing=useRef(false);
+ const scopeKey=localRepository.currentKey();
+ const today=new Date(now);
+ const selection=selectionOf(data);
+ const options=candidates(selection,data.profile,data.feedback);
+ const recommended=options.find(activity=>activity.id===suggestion?.id)??recommend(selection,data.feedback,data.sessions,'',[],data.profile,data.recommendationEvents);
+ const active=data.sessions.find(session=>session.id===activeId);
+ const activeActivity=active&&activityById(active.activityId);
+ const weather=useCourtyardWeather(data.courtyard.city);
+ const completed=data.sessions.filter(session=>session.status==='completed');
+ const feedback=active&&[...data.feedback].reverse().find(item=>item.sessionId===active.id);
+ const stats=growthStats(data.sessions,today);
+ const monday=new Date(today);
+ monday.setDate(today.getDate()-((today.getDay()+6)%7));
+ const thisWeek=stats.days.filter(day=>day.day>=localDay(monday));
+ const status=data.reminder.enabled?data.companion?.status??'ended':'ended';
+
+ function updateData(change:(current:AppData)=>AppData){
+  if(localRepository.currentKey()!==scopeKey)return;
+  const current=localRepository.read();
+  const changed=change(current);
+  const next=changed===current?current:withReminderPlan(changed,Date.now());
+  if(next!==current&&!localRepository.save(next))setNotice('浏览器无法保存本地数据，请检查存储权限。');
+  setData(next);
+  return next;
+ }
+
+ function changeYard(change:(current:Yard)=>Yard){
+  updateData(current=>{const courtyard=change(current.courtyard);return courtyard===current.courtyard?current:{...current,courtyard};});
+ }
+ function showQuick(kind:QuickBreak){setQuick(kind);setCheck(false);setWalking(false);}
+ function saveQuick(){
+  if(!quick)return;
+  changeYard(current=>({...current,peel:current.peel||quick==='walk'&&walking,notes:[...current.notes,{kind:quick,at:new Date().toISOString()}]}));
+  setQuick(null);setNotice('已记入手记。');
+ }
+ useEffect(()=>{
+  if(editingProfile||document.visibilityState!=='visible'||!data.courtyard.reminders.length)return;
+  const day=localDay(today);
+  const hhmm=today.toTimeString().slice(0,5);
+  const hour=today.getHours();
+  const {dndStartHour:start,dndEndHour:end}=data.reminder;
+  if(inHourWindow(hour,start,end,false))return;
+  const due=localRepository.read().courtyard.reminders.filter(item=>item.time===hhmm&&item.lastDay!==day);
+  if(!due.length)return;
+  const ids=new Set(due.map(item=>item.id));
+  changeYard(current=>({...current,reminders:current.reminders.map(item=>ids.has(item.id)?{...item,lastDay:day}:item)}));
+  setLifeDue(current=>[...new Set([...current,...due.map(item=>item.private?'该休息一下了':item.label)])]);
+ },[now,data.courtyard.reminders,editingProfile]);
+ useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[]);
  useEffect(()=>localRepository.subscribe(setData),[]);
- const stats=growthStats(data.sessions,new Date(now));
- const today=new Date(now),theme=dailyTheme(today);
- const active=data.sessions.find(s=>s.id===activeId)||null,activeActivity=active?activityById(active.activityId):null;
- const completed=data.sessions.filter(s=>s.status==='completed');const latest=completed.at(-1);const latestFeedback=latest?[...data.feedback].reverse().find(f=>f.sessionId===latest.id||(!f.sessionId&&f.activityId===latest.activityId)):null;
- const selection:Preference={scene:data.currentScene,duration:data.preference.duration,mobility:data.preference.mobility,bodyNeed:data.currentNeed,availableEquipment:data.preference.availableEquipment};
- const options=useMemo(()=>candidates(selection,data.profile,data.feedback),[data.currentScene,data.preference.duration,data.preference.mobility,data.currentNeed,data.profile,data.feedback]);
- useEffect(()=>{const running=data.sessions.find(s=>s.status==='running'&&s.deadlineAt&&s.deadlineAt<=now);if(running)updateData(d=>({...d,sessions:d.sessions.map(s=>s.id===running.id?transitionSession(s,'tick',now):s)}));},[now,data.sessions]);
- useEffect(()=>{if(checkingReminder.current||showReminder||onboarding||editingProfile||document.visibilityState!=='visible')return;
+ useEffect(()=>{
+  const running=data.sessions.find(session=>session.status==='running'&&session.deadlineAt&&session.deadlineAt<=now);
+  if(running)updateData(current=>({...current,sessions:current.sessions.map(session=>session.id===running.id?transitionSession(session,'tick',now):session)}));
+ },[now,data.sessions]);
+ useEffect(()=>{if(checkingReminder.current||showReminder||editingProfile||document.visibilityState!=='visible')return;
   const current=localRepository.read();
   if(current.companion?.status==='paused'&&current.reminder.pausedUntil&&now>=Date.parse(current.reminder.pausedUntil)){updateData(d=>({...d,reminder:{...d.reminder,pausedUntil:null},companion:d.companion?{...d.companion,status:'active',nextReminderAt:scheduleReminder(now,{...d.reminder,pausedUntil:null},d.reminderEvents,0)}:null}));return;}
   const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -68,63 +143,350 @@ function AppContent({account}:{account:ReturnType<typeof useAccount>}){
   const isSnooze=current.reminder.snoozedUntil!==null&&Boolean(current.reminder.pendingReminderId);
   const occurrence=isSnooze?`${current.reminder.pendingReminderId}:snooze:${current.reminder.snoozedUntil}`:`${current.companion!.id}:${current.companion!.nextReminderAt}`;
   void claimReminder(`${scopeKey}:${occurrence}`).then(result=>{if(localRepository.currentKey()!==scopeKey)return;if(result==='unavailable'){endCompanion();setNotice('此浏览器无法保存标签页协调记录，自动提醒已关闭；仍可手动选择活动。');return;}if(result!=='claimed')return;const latest=localRepository.read();if(!reminderDue(latest,Date.now()))return;
-   const p={...latest.preference,scene:latest.currentScene,bodyNeed:latest.currentNeed};const a=recommend(p,latest.feedback,latest.sessions,theme.tag,[],latest.profile,latest.recommendationEvents);
+   const p={...latest.preference,scene:latest.currentScene,bodyNeed:latest.currentNeed};const a=recommend(p,latest.feedback,latest.sessions,'',[],latest.profile,latest.recommendationEvents);
    const time=Date.now();const events:AppData['reminderEvents']=[...latest.reminderEvents,{id:occurrence,companionId:latest.companion!.id,type:isSnooze?'redisplayed':'due',scheduledAt:new Date(latest.companion!.nextReminderAt!).toISOString(),sentAt:new Date(time).toISOString(),systemDelivery:'unknown',notificationStatus:'not-requested',at:new Date(time).toISOString(),scene:latest.currentScene,activityId:a?.id}];
    const next=withReminderPlan({...recordRecommendation(latest,a,`${occurrence}:recommendation`,new Date(time)),reminder:{...latest.reminder,snoozedUntil:null},reminderEvents:events,companion:{...latest.companion!,nextReminderAt:scheduleReminder(time,latest.reminder,events,latest.reminder.intervalMinutes,latest.adaptive)}},time);
-   if(!localRepository.save(next)){setNotice('无法保存提醒事件，请检查浏览器存储权限。');return;}setData(next);setReminderActivity(a);setReminderSeen(a?[a.id]:[]);setShowReminder(true);
+   if(!localRepository.save(next)){setNotice('无法保存提醒事件，请检查浏览器存储权限。');return;}setData(next);setSuggestion(a);setSeen(a?[a.id]:[]);setShowReminder(true);
    if(next.reminder.browserNotifications)void displayNotification().then(status=>updateData(d=>({...d,reminderEvents:d.reminderEvents.map(e=>e.id===occurrence?{...e,notificationStatus:status}:e)})));
   }).finally(()=>{checkingReminder.current=false;});
- },[now,showReminder,onboarding]);
+ },[now,showReminder,editingProfile]);
  useEffect(()=>{if(showReminder){const id=[...data.reminderEvents].reverse().find(e=>['due','redisplayed'].includes(e.type))?.id;if(id)updateData(d=>({...d,reminderEvents:d.reminderEvents.map(e=>e.id===id?{...e,foregroundDelivery:'shown'}:e)}));}},[showReminder]);
  useEffect(()=>{if(showReminder&&(!data.reminder.enabled||data.companion?.status!=='active'))setShowReminder(false);},[data.reminder.enabled,data.companion?.status,showReminder]);
- function chooseScene(scene:Scene){updateData(d=>({...d,currentScene:scene,preference:{...d.preference,scene},companion:d.companion?{...d.companion,currentScene:scene}:null,reminderEvents:d.companion?[...d.reminderEvents,{id:uid(),companionId:d.companion.id,type:'scene-changed',at:new Date().toISOString(),scene}]:d.reminderEvents}));setSuggestion(null);setSeen([]);if(showReminder){const p={...selection,scene};const a=recommend(p,data.feedback,data.sessions,theme.tag,[],data.profile,data.recommendationEvents);setReminderActivity(a);setReminderSeen(a?[a.id]:[]);}}
- function chooseNeed(need:FocusArea){updateData(d=>({...d,currentNeed:need,preference:{...d.preference,bodyNeed:need}}));setSuggestion(null);setSeen([]);if(showReminder){const a=recommend({...selection,bodyNeed:need},data.feedback,data.sessions,theme.tag,[],data.profile,data.recommendationEvents);setReminderActivity(a);setReminderSeen(a?[a.id]:[]);}}
- function setPreference(part:Partial<Preference>){updateData(d=>({...d,preference:{...d.preference,...part},profile:{...d.profile,duration:part.duration??d.profile.duration,mobility:part.mobility??d.profile.mobility}}));setSuggestion(null);setSeen([]);if(showReminder){const a=recommend({...selection,...part},data.feedback,data.sessions,theme.tag,[],data.profile,data.recommendationEvents);setReminderActivity(a);setReminderSeen(a?[a.id]:[]);}}
  function startCompanion(){const time=Date.now();updateData(d=>{const id=uid();return {...d,companion:{id,startedAt:new Date(time).toISOString(),status:'active',currentScene:d.currentScene,nextReminderAt:scheduleReminder(time,{...d.reminder,pausedUntil:null},d.reminderEvents,d.reminder.intervalMinutes,d.adaptive)},reminder:{...d.reminder,enabled:true,quiet:false,pausedUntil:null,snoozedUntil:null,pendingReminderId:null},reminderEvents:[...d.reminderEvents,{id:uid(),companionId:id,type:'started',at:new Date(time).toISOString(),scene:d.currentScene}]};});}
- function respond(type:'postponed'|'skipped'|'already-active'|'paused'|'accepted',minutes=0,why=reason,at=Date.now()){const id=uid();updateData(d=>respondToReminder(d,type,at,id,why,minutes));setShowReminder(false);}
+ function respond(type:'postponed'|'skipped'|'already-active'|'paused'|'accepted',minutes=0,why=reason,at=Date.now()){const id=uid();updateData(d=>respondToReminder(d,type,at,id,why,minutes));setShowReminder(false);setLifeDue([]);}
  function pauseCompanion(){const at=Date.now();const minutes=(Date.parse(pauseUntil)-at)/60000;if(!Number.isFinite(minutes)||minutes<=0){setNotice('请选择未来的恢复时间。');return;}respond('paused',minutes,'用户主动暂停',at);}
  function resumeCompanion(){updateData(d=>d.companion?{...d,reminder:{...d.reminder,enabled:true,pausedUntil:null},companion:{...d.companion,status:'active',nextReminderAt:scheduleReminder(Date.now(),{...d.reminder,pausedUntil:null},d.reminderEvents,d.reminder.intervalMinutes,d.adaptive)},reminderEvents:[...d.reminderEvents,{id:uid(),companionId:d.companion.id,type:'resumed',at:new Date().toISOString(),scene:d.currentScene}]}:d);}
  function endCompanion(){updateData(d=>({...d,reminder:{...d.reminder,enabled:false,pausedUntil:null,snoozedUntil:null,pendingReminderId:null},companion:d.companion?{...d.companion,status:'ended',endedAt:new Date().toISOString(),nextReminderAt:null}:null}));setShowReminder(false);}
- function showSuggestion(exclude:string[]=[]){const a=recommend(selection,data.feedback,data.sessions,theme.tag,exclude,data.profile,data.recommendationEvents);setSuggestion(a);if(a){setSeen([...exclude,a.id]);updateData(d=>recordRecommendation(d,a,uid(),new Date()));}}
- function shuffle(reminder=false){updateData(d=>({...d,swapCount:d.swapCount+1,reminderEvents:reminder&&d.companion?[...d.reminderEvents,{id:uid(),companionId:d.companion.id,type:'swapped',at:new Date().toISOString(),scene:d.currentScene}]:d.reminderEvents}));const current=reminder?reminderActivity:suggestion;const oldSeen=reminder?reminderSeen:seen;const all=candidates(selection,data.profile,data.feedback);const available=all.filter(a=>a.id!==current?.id&&!oldSeen.includes(a.id));if(!available.length&&all.length<=1){setNotice('当前条件只有一项匹配，可调整场景、时间或行动条件。');return;}const exclude=available.length?oldSeen:current?[current.id]:[];const a=recommend(selection,data.feedback,data.sessions,theme.tag,exclude,data.profile,data.recommendationEvents);updateData(d=>recordRecommendation(d,a,uid(),new Date()));if(reminder){setReminderActivity(a);setReminderSeen([...exclude,...(a?[a.id]:[])]);}else{setSuggestion(a);setSeen([...exclude,...(a?[a.id]:[])]);}}
- function begin(a:Activity,source:Session['source']='manual',restInviteId?:string){if(!candidates(selection,data.profile,data.feedback).some(x=>x.id===a.id)){setNotice('条件已变化，请重新选择适合的动作。');return;}if(source==='reminder')respond('accepted',0,'现在活动');const session:Session={id:uid(),activityId:a.id,preference:{...selection},startedAt:new Date().toISOString(),status:'paused',deadlineAt:null,remainingSeconds:a.durationSeconds,reminderId:source==='reminder'?[...data.reminderEvents].reverse().find(e=>e.type==='due')?.id:undefined,source,restInviteId};updateData(d=>({...d,sessions:[...d.sessions,session],companion:source==='reminder'&&d.companion?{...d.companion,nextReminderAt:scheduleReminder(Date.now(),d.reminder,d.reminderEvents,d.reminder.intervalMinutes,d.adaptive)}:d.companion}));setActiveId(session.id);setNote('');setShowReminder(false);setPage('activity');window.scrollTo(0,0);}
- function changeSession(change:Partial<Session>){if(!active)return;updateData(d=>({...d,sessions:d.sessions.map(s=>s.id===active.id?{...s,...change}:s)}));}
- function leaveActivity(){if(active&&active.status!=='completed')changeSession({status:'exited',deadlineAt:null,remainingSeconds:remaining(active,Date.now())});setActiveId(null);setPage('home');}
- function switchIndoor(){if(!active)return;updateData(d=>({...d,currentScene:'home',preference:{...d.preference,scene:'home',mobility:'standing'},sessions:d.sessions.map(s=>s.id===active.id?{...s,status:'exited',deadlineAt:null,remainingSeconds:remaining(s,Date.now())}:s)}));setActiveId(null);setPage('home');setSuggestion(null);setNotice('已切换为室内条件，可以重新选择活动。');}
- function stopUncomfortable(){if(!active)return;const activityId=active.activityId;updateData(d=>({...d,sessions:d.sessions.map(s=>s.id===active.id?{...s,status:'exited',deadlineAt:null,remainingSeconds:remaining(s,Date.now())}:s),feedback:[...d.feedback.filter(f=>f.activityId!==activityId),{activityId,value:'uncomfortable',reason:'用户在活动中停止',at:new Date().toISOString()}]}));setActiveId(null);setSuggestion(null);setPage('home');setNotice('已停止并避开这项活动。如出现疼痛加重、眩晕、麻木或无力，请寻求适当医疗评估。');}
- function swapActivity(){if(!active)return;const duration=active.source==='garden-invite'?60:selection.duration;const p={...selection,duration} as Preference;const excluded=active.source==='garden-invite'?activities.filter(a=>a.durationSeconds!==60).map(a=>a.id):[];const next=recommend(p,data.feedback,data.sessions,theme.tag,[active.activityId,...excluded],data.profile,data.recommendationEvents);if(!next){setNotice('当前条件没有其他合适活动，可调整场景、时间或行动条件。');return;}changeSession({status:'exited',deadlineAt:null,remainingSeconds:remaining(active,Date.now())});begin(next,active.source,active.restInviteId);}
- function finish(){if(!active||active.status==='completed'||active.status==='exited'||active.status!=='ready')return;const id=active.id,activityId=active.activityId,restId=active.restInviteId;updateData(d=>{let next=grantCompletion(d,id,new Date(),note.trim().slice(0,120));if(next!==d&&active.reminderId)next={...next,reminderEvents:[...next.reminderEvents,{id:`${id}:completed`,companionId:d.companion?.id||'',type:'activity-completed',at:new Date().toISOString(),reminderId:active.reminderId,sessionId:id,activityId}]};return next===d?d:{...next,companion:next.companion?.status==='active'?{...next.companion,nextReminderAt:scheduleReminder(Date.now(),next.reminder,next.reminderEvents,next.reminder.intervalMinutes,next.adaptive)}:next.companion};});setPage('done');void garden.contribute(id,activityId,restId);window.scrollTo(0,0);}
- function navigate(to:Page){if(page==='activity'&&to!=='activity'&&active&&active.status!=='completed')changeSession({status:'exited',deadlineAt:null,remainingSeconds:remaining(active,Date.now())});setPage(to);setNotice('');window.scrollTo(0,0);}
- function saveProfile(profile:AppData['profile'],reminder:AppData['reminder']){updateData(d=>{const scene=editingProfile?d.currentScene:profile.commonScenes[0];const need=editingProfile?d.currentNeed:profile.focusAreas[0]||'general';const id=d.companion?.id||uid();return {...d,profile,preference:{...d.preference,scene,duration:profile.duration,mobility:profile.mobility,bodyNeed:need},currentScene:scene,currentNeed:need,reminder,companion:reminder.enabled?{id,startedAt:d.companion?.startedAt||new Date().toISOString(),status:editingProfile&&d.companion?.status==='paused'?'paused':'active',currentScene:scene,nextReminderAt:scheduleReminder(Date.now(),reminder,d.reminderEvents,reminder.intervalMinutes,d.adaptive)}:d.companion?{...d.companion,status:'ended',nextReminderAt:null}:null};});setOnboarding(false);setEditingProfile(false);}
  async function enableBrowserNotifications(){const result=await requestNotifications();updateData(d=>({...d,reminder:{...d.reminder,browserNotifications:result.granted}}));setNotice(result.message);}
  function exportData(){const url=URL.createObjectURL(new Blob([localRepository.export(data)],{type:'application/json'}));const link=document.createElement('a');link.href=url;link.download=`cyberhealth-${localDay(new Date())}.json`;link.click();URL.revokeObjectURL(url);}
- async function joinRestInvite(id:string){const p:Preference={scene:data.currentScene,duration:60,mobility:data.preference.mobility,bodyNeed:data.currentNeed,availableEquipment:data.preference.availableEquipment};const excluded=activities.filter(a=>a.durationSeconds!==60).map(a=>a.id);const a=recommend(p,data.feedback,data.sessions,theme.tag,excluded,data.profile,data.recommendationEvents);if(!a){setNotice('当前场景没有合适的 60 秒活动，请先切换场景或行动条件。');return;}if(await garden.beginRest(id))begin(a,'garden-invite',id);else setNotice('这次休息邀请已失效，无法开始。');}
- useDialogFocus(showReminder,'.reminder-dialog',()=>respond('skipped',0,'关闭提醒'));
- const status=data.reminder.enabled?data.companion?.status||'ended':'ended';
- return <div className="app-shell"><div className="ambient ambient-one"/><div className="ambient ambient-two"/><div className="app-layout" inert={onboarding||editingProfile||showReminder}><aside className="sidebar"><button className="brand" onClick={()=>navigate('home')} aria-label="回到首页"><span className="brand-mark">养</span><span><b>摸鱼养生局</b><small>CyberHealth</small></span></button><nav aria-label="主导航">{nav.map(item=><button aria-label={item.label} key={item.id} className={`nav-item ${page===item.id||(['activity','done'].includes(page)&&item.id==='home')?'active':''}`} onClick={()=>navigate(item.id)}><span>{item.icon}</span>{item.label}</button>)}</nav><div className="side-foot"><span className="leaf-small">✳</span><p>休息不必隆重。<br/>找到适合此刻的一小步。</p><small>个人偏好仅保存在此浏览器</small></div></aside><main className="main-content"><PwaStatus/><header className="topbar"><span>摸鱼养生局 <span className="topbar-slash">/</span> {page==='activity'?'正在休息':page==='done'?'一次好休息':nav.find(n=>n.id===page)?.label}</span><div className="topbar-right"><span className="top-date">{today.toLocaleDateString('zh-CN',{month:'long',day:'numeric',weekday:'long'})}</span><span className="energy-pill">✦ {data.energy} 元气</span></div></header>
- {notice&&<div className="toast" role="status">{notice}<button onClick={()=>setNotice('')} aria-label="关闭提示">×</button></div>}
- {page==='home'&&<>
 
- <section className="companion-home"><div className="companion-copy"><span className="section-kicker">CyberHealth · 智能微休息助手</span><h1>{status==='active'?'歇一小会儿，再出发。':status==='paused'?'先专注，稍后再见。':'让休息，也有个好时机。'}</h1><p>在学习与工作之间，给自己一个做得到的小间隙。</p><div className="companion-status"><span className={`status-dot ${status}`}/><strong>{status==='active'?'提醒已开启':status==='paused'?'提醒已暂停':'提醒已关闭'}</strong><span>{sceneLabel(data.currentScene)}{['library','classroom'].includes(data.currentScene)?' · 安静模式':''}</span></div><div className="next-reminder"><small>下次计划提醒</small><strong>{status==='active'?(data.companion?.nextReminderAt?nextLabel(data.companion.nextReminderAt):'暂无可用时段，请修改工作或免打扰设置'):status==='paused'?nextLabel(data.reminder.pausedUntil?Date.parse(data.reminder.pausedUntil):null):'由你决定何时开启'}</strong><p>最小间隔 {data.reminder.intervalMinutes} 分钟 · 每天最多 {data.reminder.dailyLimit} 次</p></div><div className="companion-actions">{status==='active'?<><label className="pause-control">暂停至<input aria-label="恢复提醒时间" type="datetime-local" value={pauseUntil} onChange={e=>setPauseUntil(e.target.value)}/></label><button className="primary" onClick={pauseCompanion}>暂停提醒</button><button className="outline-button" onClick={endCompanion}>关闭提醒</button></>:<button className="primary" onClick={status==='paused'?resumeCompanion:startCompanion}>{status==='paused'?'继续提醒':'开启休息提醒'}</button>}<button className="text-button" onClick={()=>navigate('settings')}>修改提醒设置</button></div><small>{browserNotificationCapability().message}</small></div><div className="companion-visual" aria-hidden="true"><div className="sun-disc"/><div className="hill hill-back"/><div className="hill hill-front"/><PetArt/><span className="visual-note">Small Moves, Lasting Habits.</span></div></section>
-  <section className="quick-controls"><div><strong>此刻在哪里？</strong><div className="choice-options">{sceneOptions.map(s=><button key={s.id} className={`choice ${data.currentScene===s.id?'selected':''}`} aria-pressed={data.currentScene===s.id} onClick={()=>chooseScene(s.id)}><span aria-hidden="true">{s.icon}</span> {s.label}</button>)}</div></div><div><strong>现在的需要</strong><div className="choice-options">{needOptions.map(n=><button key={n.id} className={`choice ${data.currentNeed===n.id?'selected':''}`} aria-pressed={data.currentNeed===n.id} onClick={()=>chooseNeed(n.id)}>{n.label}</button>)}</div></div><div><strong>时间与空间</strong><div className="choice-options">{([30,60,180,300,600,1200] as Duration[]).map(d=><button key={d} className={`choice ${data.preference.duration===d?'selected':''}`} aria-pressed={data.preference.duration===d} onClick={()=>setPreference({duration:d})}>{d<60?`${d} 秒`:`${d/60} 分钟`}</button>)}{mobilityOptions.map(m=><button key={m.id} className={`choice ${data.preference.mobility===m.id?'selected':''}`} aria-pressed={data.preference.mobility===m.id} onClick={()=>setPreference({mobility:m.id})}>{m.label}</button>)}</div></div></section>
+ function changeConditions(part:Partial<Preference>){
+  updateData(current=>{
+   const preference={...selectionOf(current),preset:undefined,...part};
+   const sceneChanged=current.currentScene!==preference.scene;
+   const companion=current.companion;
+   return {...current,preference,currentScene:preference.scene,currentNeed:preference.bodyNeed??'general',
+    companion:companion&&sceneChanged?{...companion,currentScene:preference.scene}:companion,
+    reminderEvents:companion&&sceneChanged?[...current.reminderEvents,{id:uid(),companionId:companion.id,type:'scene-changed',at:new Date().toISOString(),scene:preference.scene}]:current.reminderEvents};
+  });
+  setSuggestion(null);
+  setSeen([]);
+  setNotice('');
+ }
 
- <div className="manual-break"><div><h2>此刻也可以，活动一下。</h2><p>确认当前环境，挑一个方便完成的微动作。</p></div><button className="outline-button" onClick={()=>{setPage('move');showSuggestion();}}>现在活动一下</button></div>
- <section className="today-growth"><div><span>今日完成</span><strong>{stats.today.count} 次</strong></div><div><span>今日活动</span><strong>{Math.round(stats.today.seconds/6)/10} 分钟</strong></div><div><span>一点点，慢慢积累</span><button className="text-button" onClick={()=>navigate('records')}>查看成长记录</button></div></section>
- <CulturePanel data={data} now={today} expanded={cultureOpen} onToggle={()=>setCultureOpen(!cultureOpen)} onChange={updateData} onBegin={begin}/>
- <section className="garden-preview"><span aria-hidden="true">✳</span><div><h2>{garden.garden?'你的花园，慢慢成长':'一方小花园'}</h2><p>{garden.garden?`已记录 ${garden.garden.contributions.length} 份真实活动贡献`:'共享花园为可选体验；未配置服务时仅在同一浏览器演示。'}</p></div><button className="text-button" onClick={()=>navigate('garden')}>看看花园</button></section>
- </>}
- {page==='move'&&<section className="plain-page"><h1>适合此刻的小动作</h1><p className="page-lead">先确认场景、时间和活动空间。推荐不会放宽这些条件。</p> <section className="quick-controls"><div><strong>此刻在哪里？</strong><div className="choice-options">{sceneOptions.map(s=><button key={s.id} className={`choice ${data.currentScene===s.id?'selected':''}`} aria-pressed={data.currentScene===s.id} onClick={()=>chooseScene(s.id)}><span aria-hidden="true">{s.icon}</span> {s.label}</button>)}</div></div><div><strong>现在的需要</strong><div className="choice-options">{needOptions.map(n=><button key={n.id} className={`choice ${data.currentNeed===n.id?'selected':''}`} aria-pressed={data.currentNeed===n.id} onClick={()=>chooseNeed(n.id)}>{n.label}</button>)}</div></div><div><strong>时间与空间</strong><div className="choice-options">{([30,60,180,300,600,1200] as Duration[]).map(d=><button key={d} className={`choice ${data.preference.duration===d?'selected':''}`} aria-pressed={data.preference.duration===d} onClick={()=>setPreference({duration:d})}>{d<60?`${d} 秒`:`${d/60} 分钟`}</button>)}{mobilityOptions.map(m=><button key={m.id} className={`choice ${data.preference.mobility===m.id?'selected':''}`} aria-pressed={data.preference.mobility===m.id} onClick={()=>setPreference({mobility:m.id})}>{m.label}</button>)}</div></div></section>
- <div className="option-list">{[['stable-chair','稳固无轮椅'],['wall','可扶的墙面']].map(([id,label])=><button key={id} aria-pressed={data.preference.availableEquipment?.includes(id)||false} className={data.preference.availableEquipment?.includes(id)?'selected':''} onClick={()=>setPreference({availableEquipment:data.preference.availableEquipment?.includes(id)?data.preference.availableEquipment.filter(x=>x!==id):[...(data.preference.availableEquipment||[]),id]})}>已确认：{label}</button>)}</div><section className="recommend-section" id="recommendation"><div className="section-heading"><div><span className="section-kicker">主动入口 · 现在也可以休息</span><h2>当前适合的活动</h2></div><p>先看场景和行动限制，再参考你的偏好。</p></div><div className="recommend-result">{suggestion&&options.some(a=>a.id===suggestion.id)?<div className="result-card"><div className="result-icon">{suggestion.icon}</div><div className="result-copy"><span className="result-meta">{suggestion.kind} · {suggestion.durationSeconds<60?`${suggestion.durationSeconds} 秒`:`${suggestion.durationSeconds/60} 分钟`} · {suggestion.meta.level}</span><h3>{suggestion.title}</h3><p>{recommendationReason(suggestion,selection,data.feedback)}</p><span className="review-chip">{suggestion.reviewStatus==='source-checked'?'动作方向有来源 · 剂量为产品设计':'演示活动 · 待正式审核'}</span></div><div className="result-actions"><button className="primary" onClick={()=>begin(suggestion)}>开始这项活动 ↗</button><button className="text-button" onClick={()=>shuffle()}>换一个</button><button className="text-button" onClick={()=>{updateData(d=>({...d,feedback:[...d.feedback.filter(f=>f.activityId!==suggestion.id),{activityId:suggestion.id,value:'unsuitable',at:new Date().toISOString()}]}));setSuggestion(null);}}>不适合我</button></div></div>:<div className="recommend-empty"><div className="empty-icon">✦</div><div><strong>{options.length?'为此刻挑一项':'当前没有匹配的活动'}</strong><p>{options.length?`有 ${options.length} 项符合当前条件。`:'试着调整场景、时长或行动条件，不会为凑数推荐不适合的活动。'}</p></div>{options.length>0&&<button className="outline-button" onClick={()=>showSuggestion()}>看看推荐</button>}</div>}</div></section></section>}
- {page==='garden'&&<GardenPanel garden={garden} onJoinRest={joinRestInvite} onSignIn={()=>navigate('settings')}/>}
- {page==='activity'&&active&&activeActivity&&<TeachingCard activity={activeActivity} session={active} secondsLeft={remaining(active,now)} quiet={data.profile.quiet} note={note} onNoteChange={setNote} onExit={leaveActivity} onIndoor={switchIndoor} onStart={()=>changeSession(transitionSession(active,'start',Date.now()))} onPause={()=>changeSession(transitionSession(active,'pause',Date.now()))} onFinish={finish} onDiscomfort={stopUncomfortable} onSwap={swapActivity}/>}
- {page==='activity'&&(!active||!activeActivity)&&<section className="plain-page"><h1>这次活动已结束</h1><button className="primary" onClick={()=>navigate('home')}>返回首页</button></section>}
- {page==='done'&&latest&&<section className="done-page"><div className="done-symbol">✳</div><span className="section-kicker">一次休息，已经收好</span><h1>做得刚刚好。</h1><p>今天又给自己留了一点时间。你确认完成了「{activityById(latest.activityId)?.title}」。{garden.garden?'花园也会收到这一份贡献。':''}</p><div className="reward-row"><div><strong>+10</strong><span>元气</span></div><div><strong>{data.energy}</strong><span>当前元气 · {petStage(data.energy)}</span></div></div>{data.pendingGardenSessions.includes(latest.id)&&<div className="sync-warning">个人记录已保存，花园同步待重试。<button onClick={garden.retryPending}>重试同步</button></div>}<ActivityFeedback value={latestFeedback?.value} onChange={value=>updateData(d=>recordActivityFeedback(d,latest,value,new Date()))}/><button className="primary" onClick={()=>navigate('home')}>返回首页</button></section>}
- {page==='pet'&&<section className="plain-page"><span className="section-kicker">个人陪伴</span><h1>慢慢长大的小伙伴</h1><p className="page-lead">{data.petName}会陪你休息、提醒和记录完成。中断使用不会扣分或生病。</p><div className="pet-page-grid"><div className="pet-stage"><div className="pet-stage-art"><PetArt/></div><label>伙伴的名字<input value={data.petName} maxLength={10} onChange={e=>updateData(d=>({...d,petName:e.target.value||'小竹'}))}/></label><strong>{petStage(data.energy)}</strong><p>{data.energy} 元气 · 已确认完成 {completed.length} 次活动</p><div className="progress-track"><span style={{width:`${Math.min(100,data.energy>=100?100:data.energy>=40?(data.energy-40)/60*100:data.energy/40*100)}%`}}/></div><small>下一阶段：{data.energy>=100?'已到达当前最高阶段':data.energy>=40?'100 元气':'40 元气'}</small></div><div className="collection"><h2>随手收藏的片刻</h2><p>完成活动后，逐渐点亮这些小纪念。</p><div className="collection-list"><div className={completed.length?'unlocked':''}><span>❧</span><strong>初见叶</strong><small>{completed.length?'已收藏':'完成 1 次活动解锁'}</small></div><div className={completed.length>=3?'unlocked':''}><span>✿</span><strong>午后花</strong><small>{completed.length>=3?'已收藏':'完成 3 次活动解锁'}</small></div><div className={data.energy>=100?'unlocked':''}><span>☼</span><strong>晴光章</strong><small>{data.energy>=100?'已收藏':'获得 100 元气解锁'}</small></div></div><p className="placeholder-note">灵宠与收藏为原创临时图形，正式美术资产待替换。</p></div></div></section>}
- {page==='records'&&<section className="plain-page"><span className="section-kicker">本地记录</span><h1>休息留下的足迹</h1><p className="page-lead">这里只统计你主动确认完成的活动，不代表运动量或健康变化。</p><div className="record-stats"><div><strong>{completed.length}</strong><span>确认完成的活动</span></div><div><strong>{stats.days.filter(d=>d.count>0).length}</strong><span>近 7 天有活动的天数</span></div><div><strong>{favoriteScene(completed)||'—'}</strong><span>常用场景</span></div><div><strong>{data.reminderEvents.filter(e=>e.type==='postponed').length}</strong><span>延后提醒次数</span></div></div><div className="today-growth"><div><span>今日完成</span><strong>{stats.today.count} 次</strong></div><div><span>累计活动时长</span><strong>{Math.round(stats.totalSeconds/6)/10} 分钟</strong></div></div><h2>近 7 天</h2><div className="week-grid">{stats.days.map(day=><div key={day.day}><span>{day.day.slice(5)}</span><strong>{day.count} 次</strong><small>{day.seconds} 秒</small></div>)}</div><GrowthInsights data={data} now={today} gardenCount={garden.garden?garden.garden.contributions.filter(c=>c.memberId===garden.actorId).length:null}/><h2>常用动作</h2><p>{stats.favorites.length?stats.favorites.map(([id,count])=>`${activityById(id)?.title||id} ${count} 次`).join('、'):'完成一次活动后，会在这里积累。'}</p><h2>最近完成</h2>{completed.length?<div className="history-list">{[...completed].reverse().slice(0,12).map(s=><div key={s.id}><span className="history-icon">{activityById(s.activityId)?.icon}</span><div><strong>{activityById(s.activityId)?.title}</strong><small>{new Date(s.completedAt||s.startedAt).toLocaleString('zh-CN')} · {sceneLabel(s.preference.scene)}{s.note?` · ${s.note}`:''}</small></div><span>+{s.reward||0} 元气</span></div>)}</div>:<div className="empty-record"><span>◌</span><strong>还没有完成记录</strong><p>开启陪伴或主动挑一项活动，都可以从容开始。</p><button className="primary" onClick={()=>navigate('home')}>返回首页</button></div>}</section>}
- {page==='settings'&&<section className="plain-page"><span className="section-kicker">按自己的节奏</span><h1>偏好与提醒</h1><AccountPanel user={account.user} error={account.error} data={data} onData={setData}/><p className="page-lead">你可以随时调整偏好。网页后台、休眠或关闭页面后，提醒可能延迟或不可用。</p><div className="settings-block"><h2>常见场景与活动偏好</h2><p>当前关注：{data.profile.focusAreas.map(f=>focusLabels[f]).join('、')}。这些选择不构成健康诊断。</p><button className="outline-button" onClick={()=>setEditingProfile(true)}>修改偏好与时段</button>{blockedActivities(data.feedback).length>0&&<div className="blocked-actions"><strong>已避开的活动</strong>{blockedActivities(data.feedback).map(f=><div key={f.activityId}><span>{activityById(f.activityId)?.title||f.activityId}</span><button className="text-button" onClick={()=>updateData(d=>restoreActivity(d,f.activityId,new Date()))}>重新启用</button></div>)}</div>}</div><div className="settings-block"><div className="setting-header"><div><h2>浏览器通知</h2><p>仅在你主动授权后尝试。站内提醒无需通知权限。</p></div><button className="outline-button" onClick={enableBrowserNotifications}>{data.reminder.browserNotifications?'检查通知权限':'开启浏览器通知'}</button></div></div><div className="settings-block"><h2>提醒设置</h2><ReminderFields value={data.reminder} onChange={reminder=>updateData(d=>({...d,reminder,companion:d.companion?{...d.companion,nextReminderAt:scheduleReminder(Date.now(),reminder,d.reminderEvents,reminder.intervalMinutes,d.adaptive)}:null}))}/><p>{browserNotificationCapability().message}</p><button className="outline-button" onClick={data.reminder.enabled?endCompanion:startCompanion}>{data.reminder.enabled?'关闭提醒':'开启提醒'}</button></div><AdaptiveSettings data={data} onChange={updateData}/><div className="settings-block"><h2>更多陪伴</h2><div className="companion-actions"><button className="outline-button" onClick={()=>navigate('garden')}>共享花园</button><button className="text-button" onClick={()=>navigate('pet')}>灵宠收藏</button><button className="text-button" onClick={()=>navigate('shop')}>主题预览</button></div></div><div className="settings-block"><h2>本地数据</h2><button className="outline-button" onClick={exportData}>导出个人数据 JSON</button><p>个人偏好、计时、活动与陪伴记录保存在此浏览器的 localStorage。清除浏览器数据或换设备后无法恢复。真实花园只同步昵称和必要贡献。</p><button className="danger-button" onClick={()=>{if(window.confirm('确定清除全部本地数据吗？此操作无法撤销。')){if(!localRepository.clear()){setNotice('未能清除本地数据，请检查浏览器存储权限后重试。');return;}void clearReminderClaims();setData(initialData());setOnboarding(true);setActiveId(null);setSuggestion(null);setNotice('本地数据已清除。');}}}>清除全部本地数据</button></div></section>}
- {page==='shop'&&<section className="plain-page"><span className="section-kicker">未来的主题 · PREVIEW</span><h1>把休息布置成喜欢的样子</h1><p className="page-lead">主题包仅供预览，暂未开放购买。基础活动与提醒免费使用。</p><div className="shop-grid">{[{id:'bamboo',name:'竹青小院',color:'#557660',desc:'给灵宠一片青绿院落。',details:'竹叶小披风、庭院配色和叶纹收藏样式。'},{id:'autumn',name:'秋日寻色',color:'#ad7845',desc:'把秋日光影收进休息时刻。',details:'暖色围巾、秋叶场景配色和果实收藏样式。'}].map(pack=><div className="shop-card" key={pack.id}><div className="shop-art" style={{background:pack.color}}><span>{pack.id==='bamboo'?'❧':'✿'}</span><div className="mini-pet">●</div></div><span className="review-chip">预览 · 暂未开放购买</span><h2>{pack.name}</h2><p>{pack.desc}</p><button className="outline-button" onClick={()=>setShopId(shopId===pack.id?null:pack.id)}>{shopId===pack.id?'收起详情':'查看详情'}</button>{shopId===pack.id&&<div className="shop-details">{pack.details}<br/>概念预览，没有支付或权益开通。</div>}</div>)}</div></section>}
- </main></div><nav inert={onboarding||editingProfile||showReminder} className="mobile-nav" aria-label="手机导航">{nav.map(item=><button aria-label={item.label} key={item.id} className={page===item.id||(['activity','done'].includes(page)&&item.id==='home')?'active':''} onClick={()=>navigate(item.id)}><span>{item.icon}</span><small>{item.label}</small></button>)}</nav>
- {showReminder&&<div className="reminder-overlay"><section className="reminder-dialog" role="dialog" aria-modal="true" aria-label="休息提醒"><span className="section-kicker">到你设定的休息提醒时间了</span><h2>给自己一个小间隙？</h2><p>当前场景：{sceneLabel(data.currentScene)}。默认沿用上次选择；你可以直接切换，也可以现在不方便。</p><strong className="reminder-label">确认当前场景</strong><div className="reminder-scenes">{sceneOptions.map(s=><button key={s.id} className={data.currentScene===s.id?'selected':''} aria-pressed={data.currentScene===s.id} onClick={()=>chooseScene(s.id)}>{s.label}</button>)}</div><strong className="reminder-label">现在想照顾哪里？</strong><div className="reminder-scenes">{needOptions.map(n=><button key={n.id} className={data.currentNeed===n.id?'selected':''} aria-pressed={data.currentNeed===n.id} onClick={()=>chooseNeed(n.id)}>{n.label}</button>)}</div><details className="reminder-more"><summary>调整时间与空间</summary><div className="reminder-scenes">{([30,60,180,300,600] as Duration[]).map(d=><button key={d} className={data.preference.duration===d?'selected':''} onClick={()=>setPreference({duration:d})}>{d<60?`${d} 秒`:`${d/60} 分钟`}</button>)}{mobilityOptions.map(m=><button key={m.id} className={data.preference.mobility===m.id?'selected':''} onClick={()=>setPreference({mobility:m.id})}>{m.label}</button>)}</div></details>{reminderActivity?<div className="reminder-pick"><span>{reminderActivity.icon}</span><div><strong>{reminderActivity.title}</strong><small>{reminderActivity.durationSeconds<60?`${reminderActivity.durationSeconds} 秒`:`${reminderActivity.durationSeconds/60} 分钟`} · {reminderActivity.meta.level} · {reminderActivity.kind}</small></div></div>:<div className="reminder-pick"><strong>当前条件没有匹配活动</strong><small>可调整场景、时间、空间或重新启用活动。</small></div>}<div className="reminder-buttons">{reminderActivity&&<button className="primary" onClick={()=>begin(reminderActivity,'reminder')}>现在活动</button>}<button className="outline-button" onClick={()=>shuffle(true)}>换一个</button>{[15,30,60].map(minutes=><button key={minutes} className="outline-button" onClick={()=>respond('postponed',minutes)}>延后 {minutes} 分钟</button>)}<button className="text-button" onClick={()=>respond('skipped')}>跳过本次</button><button className="text-button" onClick={()=>respond('already-active',0,'已经活动过')}>我已经活动过了</button><button className="text-button" onClick={()=>respond('paused',Math.max(1,Math.ceil((new Date().setHours(24,0,0,0)-Date.now())/60000)),'今天不想被打扰')}>今天不想被打扰</button><label className="reminder-label">原因（可选）<select aria-label="提醒反馈原因" value={reason} onChange={e=>setReason(e.target.value)}>{['','正在专注','正在开会 / 上课','当前不方便活动','已经活动过','今天不想被打扰'].map(r=><option key={r} value={r}>{r||'不说明原因'}</option>)}</select></label></div></section></div>}
- {onboarding&&<Onboarding initial={data} onSave={saveProfile} onSkip={()=>{updateData(d=>({...d,profile:{...d.profile,onboardingComplete:true}}));setOnboarding(false);}}/>}{editingProfile&&<Onboarding initial={data} editing onSave={saveProfile} onSkip={()=>setEditingProfile(false)}/>}</div>;
+ function pickPreset(id:PresetId){
+  changeConditions(conditionsForPreset(id,selectionOf(localRepository.read())));
+ }
+
+ function shuffle(){
+  const excluded=[...new Set([...seen,...(recommended?[recommended.id]:[])])];
+  const available=options.some(activity=>!excluded.includes(activity.id));
+  const next=recommend(selection,data.feedback,data.sessions,'',available?excluded:recommended?[recommended.id]:[],data.profile,data.recommendationEvents);
+  if(!next){setNotice('当前条件只有这一项匹配，可以调整条件。');return;}
+  setSuggestion(next);
+  setSeen([...(available?excluded:[]),next.id]);
+  const id=uid();
+  updateData(current=>({...recordRecommendation(current,next,id,new Date()),swapCount:current.swapCount+1,
+   reminderEvents:showReminder&&current.companion?[...current.reminderEvents,{id:uid(),companionId:current.companion.id,type:'swapped',at:new Date().toISOString(),scene:current.currentScene}]:current.reminderEvents}));
+ }
+
+ function begin(activity:Activity,source:'manual'|'reminder'='manual',replaceId?:string){
+  const required=supports.filter(([id])=>activity.meta.equipmentRequired.includes(id));
+  if(required.length&&!window.confirm(`请确认身边有${required.map(([,label])=>label).join('和')}，可以安全使用。`))return;
+  const startedAt=Date.now();
+  const id=uid();
+  let started=false;
+  updateData(current=>{
+   const preference=selectionOf(current);
+   if(!matches(activity,preference,current.profile,current.feedback)){
+    setNotice('条件已变化，请重新选择适合的动作。');
+    return current;
+   }
+   const ongoing=current.sessions.find(session=>['running','paused','ready'].includes(session.status));
+   if(ongoing&&ongoing.id!==replaceId){
+    setActiveId(ongoing.id);
+    setPage('activity');
+    setShowReminder(false);
+    return current;
+   }
+   const reminderId=source==='reminder'?(current.reminder.pendingReminderId??current.reminderEvents.findLast(event=>event.type==='due')?.id):undefined;
+   const next=source==='reminder'&&!replaceId?respondToReminder(current,'accepted',startedAt,uid(),'现在活动'):current;
+   const session:Session={id,activityId:activity.id,preference,startedAt:new Date(startedAt).toISOString(),status:'paused',deadlineAt:null,
+    remainingSeconds:activity.durationSeconds,source,reminderId:ongoing?.reminderId??reminderId};
+   started=true;
+   return {...recordRecommendation(next,activity,`${id}:start`,new Date(startedAt)),sessions:[
+    ...next.sessions.map(item=>item.id===replaceId?transitionSession(item,'skip',startedAt):item),session]};
+  });
+  if(!started)return;
+  setActiveId(id);
+  setNote('');
+  setShowReminder(false);
+  setNotice('');
+  setSkipCamera(false);
+  setLifeDue([]);
+  setPage('activity');
+  window.scrollTo(0,0);
+ }
+
+ function act(action:'start'|'pause'|'skip'){
+  if(!activeId)return;
+  updateData(current=>({...current,sessions:current.sessions.map(session=>session.id===activeId?transitionSession(session,action,Date.now()):session)}));
+ }
+
+ function navigate(to:Page){
+  if(page==='activity'&&to!=='activity')act('skip');
+  setPage(to);
+  setQuick(null);
+  setCheck(false);
+  setNotice('');
+  window.scrollTo(0,0);
+ }
+
+ function stopUncomfortable(){
+  if(!active)return;
+  updateData(current=>({...current,sessions:current.sessions.map(session=>session.id===active.id?transitionSession(session,'skip',Date.now()):session),
+   feedback:[...current.feedback,{id:uid(),activityId:active.activityId,value:'uncomfortable',reason:'用户在活动中停止',at:new Date().toISOString()}]}));
+  navigate('home');
+  setNotice('已停止并避开这项活动。如出现疼痛加重、眩晕、麻木或无力，请寻求适当医疗评估。');
+ }
+
+ function swapActivity(){
+  if(!active)return;
+  const next=recommend(selection,data.feedback,data.sessions,'',[active.activityId],data.profile,data.recommendationEvents);
+  if(!next){setNotice('当前条件没有其他合适动作。');return;}
+  begin(next,active.source==='reminder'?'reminder':'manual',active.id);
+ }
+
+ async function finish(){
+  if(!activeId||committing.current)return;
+  committing.current=true;
+  try{
+   const save=()=>updateData(current=>{
+    const at=new Date();
+    const target=current.sessions.find(session=>session.id===activeId);
+    const next=grantCompletion(current,activeId,at,note.trim().slice(0,120));
+    if(next===current)return current;
+    const reminderEvents:AppData['reminderEvents']=target?.reminderId?[...next.reminderEvents,{id:`${activeId}:completed`,companionId:current.companion?.id??'',
+     type:'activity-completed',at:at.toISOString(),reminderId:target.reminderId,sessionId:activeId,activityId:target.activityId}]:next.reminderEvents;
+    const companion=next.companion?.status==='active'&&!next.reminder.snoozedUntil?{...next.companion,
+     nextReminderAt:scheduleReminder(at.getTime(),next.reminder,reminderEvents,next.reminder.intervalMinutes,next.adaptive)}:next.companion;
+    return {...next,reminderEvents,companion};
+   });
+   const saved=navigator.locks?await navigator.locks.request(`${scopeKey}:completion`,save):save();
+   if(saved?.sessions.some(session=>session.id===activeId&&session.status==='completed')){
+    setPage('done');
+    window.scrollTo(0,0);
+   }
+  }finally{committing.current=false;}
+ }
+
+ function saveProfile(profile:AppData['profile'],reminder:AppData['reminder']){
+  updateData(current=>{
+   const scene=profile.commonScenes[0]??current.currentScene;
+   const need=profile.focusAreas[0]??'general';
+   const companion=current.companion;
+   return {...current,profile,reminder,currentScene:scene,currentNeed:need,
+    preference:{...current.preference,preset:undefined,scene,bodyNeed:need,quiet:profile.quiet,smallMovement:profile.smallMovement},
+    companion:reminder.enabled?{id:companion?.id??uid(),startedAt:companion?.startedAt??new Date().toISOString(),
+     status:companion?.status==='paused'?'paused':'active',currentScene:scene,
+     nextReminderAt:reminder.snoozedUntil??scheduleReminder(Date.now(),reminder,current.reminderEvents,reminder.intervalMinutes,current.adaptive)}
+     :companion?{...companion,status:'ended',nextReminderAt:null}:null};
+  });
+  setSuggestion(null);
+  setSeen([]);
+  setEditingProfile(null);
+ }
+
+ function clearLocalData(){
+  if(!window.confirm('确定清除全部本地数据吗？此操作无法撤销。'))return;
+  if(!localRepository.clear()){setNotice('未能清除本地数据，请检查浏览器存储权限后重试。');return;}
+  void clearReminderClaims();
+  setData(initialData());
+  setActiveId(null);
+  setSuggestion(null);
+  setSeen([]);
+  setConditionsOpen(false);
+  setLifeDue([]);
+  setNotice('本地数据已清除。');
+ }
+
+ useDialogFocus(showReminder||lifeDue.length>0,showReminder?'[aria-label="休息提醒"]':'[aria-label="生活提醒"]',()=>showReminder?respond('skipped',0,'关闭提醒'):setLifeDue([]));
+
+ const fields=<ConditionFields value={selection} onChange={changeConditions} quiet={selection.quiet??data.profile.quiet} smallMovement={selection.smallMovement??data.profile.smallMovement}/>;
+ const empty=<div className="empty-recommendation"><strong>当前没有匹配的活动</strong><p>{emptyAdvice(selection,data)}</p></div>;
+ const term=currentSolarTerm(today);
+ const firstSetup=!data.profile.onboardingComplete;
+ const closeSetup=()=>setEditingProfile(null);
+ const setup=()=>setEditingProfile(firstSetup?'first':'edit');
+
+ const home=page==='home';
+ const termName=term?.name??'节气资料暂缺';
+ const reminderLabel=status==='active'?'提醒已开启':status==='paused'?'提醒已暂停':'提醒已关闭';
+ const reminderTime=status==='active'?(data.companion?.nextReminderAt?nextLabel(data.companion.nextReminderAt):'暂无可用时段'):
+  status==='paused'?nextLabel(data.reminder.pausedUntil?Date.parse(data.reminder.pausedUntil):null):null;
+ const recommendation=<>
+  <div className="break-result">
+   {recommended?<div className="result-copy">
+    <span className="section-kicker">{activityCategory(recommended)} · {recommended.meta.posture==='seated'?'坐着做 · ':''}{durationLabel(recommended.durationSeconds)}</span>
+    <h2>{recommended.title}</h2>
+    <p>{recommended.description}</p>
+    {!home&&<small>{recommendationReason(recommended,selection,data.feedback)}</small>}
+    {recommended.content?.type==='traditional'&&<details><summary>查看传统导引资料</summary><TraditionalCard guide={recommended.content.guide}/></details>}
+   </div>:empty}
+   <div className="break-actions">
+    {recommended&&<button className="primary" onClick={()=>begin(recommended)}>{home?'歇一下':'开始'}</button>}
+    {recommended&&<button className="outline-button" onClick={shuffle}>换一个</button>}
+    <button className="text-button" aria-expanded={conditionsOpen} aria-controls="break-conditions" onClick={()=>setConditionsOpen(!conditionsOpen)}>调整条件</button>
+    {home&&<button className="text-button" onClick={()=>showQuick('quiet')}>现在不方便</button>}
+    {!home&&recommended&&<button className="text-button" onClick={()=>{updateData(current=>({...current,feedback:[...current.feedback,{id:uid(),activityId:recommended.id,value:'unsuitable',at:new Date().toISOString()}]}));setSuggestion(null);}}>不适合我</button>}
+   </div>
+  </div>
+  <div id="break-conditions" hidden={!conditionsOpen}>{fields}</div>
+ </>;
+
+ const lesson=page==='activity'&&active&&activeActivity;
+ const shoulder=options.find(activity=>activity.id==='scapular-squeeze');
+ function collectFromBasket(){
+  if(shoulder){begin(shoulder);return;}
+  if(recommended){begin(recommended);return;}
+  setConditionsOpen(true);
+ }
+ return <div className="app-shell world-shell">
+  <div className="app-layout" inert={Boolean(editingProfile)||showReminder||lifeDue.length>0}>
+   <main className="main-content">
+    <PwaStatus/>
+    {notice&&<div className="toast" role="status">{notice}<button onClick={()=>setNotice('')} aria-label="关闭提示">×</button></div>}
+    <section className="world-home" aria-labelledby="world-title" data-view={page}>
+     <header className="yard-header">
+      <div className="yard-brand"><span aria-hidden="true">草</span><div><small>摸鱼养生局</small><h1 id="world-title">节气百草局</h1></div></div>
+      <nav aria-label="主导航" className="yard-nav">{nav.map(item=><button key={item.id} aria-current={(item.id===page||item.id==='home'&&['move','activity','done'].includes(page))?'page':undefined} onClick={()=>navigate(item.id)}>{item.label}</button>)}</nav>
+      <details className="world-reminders">
+       <summary><span className={`status-dot ${status}`}/><span>{reminderLabel}{reminderTime&&<small>{status==='paused'?'恢复':'下次'} · {reminderTime}</small>}</span></summary>
+       <div className="world-reminder-panel">
+        <p>前台网页提醒 · 间隔至少 {data.reminder.intervalMinutes} 分钟 · 每天最多 {data.reminder.dailyLimit} 次</p>
+        {status==='active'?<>
+         <label className="pause-control">暂停至<input aria-label="恢复提醒时间" type="datetime-local" value={pauseUntil} onChange={event=>setPauseUntil(event.target.value)}/></label>
+         <button className="outline-button" onClick={pauseCompanion}>暂停提醒</button>
+         <button className="text-button" onClick={endCompanion}>关闭提醒</button>
+        </>:<button className="outline-button" onClick={status==='paused'?resumeCompanion:startCompanion}>{status==='paused'?'继续提醒':'开启休息提醒'}</button>}
+        <button className="text-button" onClick={()=>navigate('settings')}>修改提醒设置</button>
+       </div>
+      </details>
+     </header>
+
+     <div className="yard-layout">
+      <div className={`yard-main ${lesson?'yard-camera':''} ${skipCamera||data.staticLandscape?'still':''}`}>
+       <Courtyard yard={data.courtyard} now={today} term={termName} weather={weather} staticOnly={data.staticLandscape} change={changeYard} onQuick={kind=>{if(!home)navigate('home');showQuick(kind);}} onJournal={()=>navigate('records')} onRhythm={()=>navigate('settings')} onStart={collectFromBasket}
+        lesson={Boolean(lesson)} pose={lesson&&(activeActivity.id==='chin-tuck'||activeActivity.id==='scapular-squeeze')?activeActivity.id:undefined} elapsed={lesson?activeActivity.durationSeconds-remaining(active,now):0}/>
+       {lesson&&!skipCamera&&!data.staticLandscape&&<button className="yard-skip outline-button" onClick={()=>setSkipCamera(true)}>跳过镜头过渡</button>}
+      </div>
+      {home&&      <aside className="yard-desk">
+       <div className="yard-desk-label"><span>廊下木案</span><time>{today.toLocaleDateString('zh-CN',{month:'long',day:'numeric'})}</time></div>
+       <section aria-label="当前推荐">{recommendation}{conditionsOpen&&<PresetPicker value={selection.preset} onChange={pickPreset}/>}</section>
+       <div className="yard-desk-tools"><button onClick={()=>navigate('move')}>其他休息</button><button onClick={()=>{setCheck(!check);setQuick(null);}}>工位自查</button></div>
+       {firstSetup&&<div className="yard-desk-tools"><button onClick={setup}>设置活动偏好</button><button onClick={()=>updateData(current=>({...current,profile:{...current.profile,onboardingComplete:true}}))}>先跳过</button></div>}
+       {check&&<section className="yard-desk-detail" aria-label="工位自查">
+        <details><summary>眼睛总想凑近</summary><p>先放大字，再检查屏幕是否有反光。</p></details>
+        <details><summary>肩颈总紧</summary><p>让肘部自然靠近身体。把常用物件挪到容易够到的位置。</p></details>
+        <details><summary>脚缺少支撑</summary><p>坐稳后让双脚平放；够不到地时，用稳固脚踏垫高。</p></details>
+       </section>}
+       {quick&&<section className="yard-desk-detail" aria-live="polite"><h2>{quick==='walk'?'门外采集路':quick==='look'?'窗边观叶':quickBreaks[quick][0]}</h2><p>{quick==='walk'&&walking?'沿方便通行的路走一小圈。可以把手机收起来，回来再点门环。':quickBreaks[quick][1]}</p><div className="break-actions">
+        {quick==='walk'&&!walking?<><button onClick={()=>setWalking(true)}>可以离座 · 出门走走</button><button onClick={collectFromBasket}>只能坐着 · 廊下收叶</button></>:<button onClick={saveQuick}>{quick==='walk'?'扣门环 · 我回来了':quick==='look'?'看过了 · 挂叶影笺':'记到手记'}</button>}
+        <button onClick={()=>setQuick(null)}>收起</button></div></section>}
+      </aside>}
+
+    {page==='move'&&<div className="break-page">
+     <div className="break-heading"><div><span className="section-kicker">办公间隙 · 微运动</span><h1>适合此刻的小动作</h1></div><span>今日确认 {stats.today.count} 次</span></div>
+     <section className="break-panel" aria-label="当前推荐">
+      <PresetPicker value={selection.preset} onChange={pickPreset}/>
+      {recommendation}
+     </section>
+     <section className="break-panel"><h2>放下设备，歇一会儿</h2><div className="break-actions">{(Object.keys(quickBreaks) as QuickBreak[]).map(kind=><button className="outline-button" key={kind} onClick={()=>showQuick(kind)}>{quickBreaks[kind][0]}</button>)}</div>{quick&&<div className="yard-desk-detail"><p>{quickBreaks[quick][1]}</p><div className="break-actions"><button className="outline-button" onClick={saveQuick}>记到手记</button><button className="text-button" onClick={()=>setQuick(null)}>收起</button></div></div>}</section>
+     <TraditionalPreview/>
+    </div>}
+
+    {lesson&&<div className="yard-activity">
+     <TeachingCard activity={activeActivity} session={active} secondsLeft={remaining(active,now)}
+     note={note} onNoteChange={setNote} onExit={()=>navigate('home')} onStart={()=>act('start')} onPause={()=>act('pause')}
+     onFinish={()=>void finish()} onDiscomfort={stopUncomfortable} onSwap={swapActivity}/></div>}
+    {page==='activity'&&(!active||!activeActivity)&&<section className="plain-page"><h1>这次活动已结束</h1><button className="primary" onClick={()=>navigate('home')}>返回首页</button></section>}
+
+    {page==='done'&&active?.status==='completed'&&<section className="break-page completion-page">
+     <div className="break-heading"><div><span className="section-kicker">已记入手记</span><h1>紫苏苗已入篓</h1></div><button className="text-button" onClick={()=>navigate('home')}>关闭</button></div>
+     <section className="break-panel"><p>你完成了「{activeActivity?.title??active.activityId}」。小药童把一株紫苏苗放进了药篓。回院可以种在窗边或水渠旁。</p></section>
+     <details className="break-panel feedback-disclosure"><summary>给这次活动一点反馈</summary><ActivityFeedback value={feedback?.value} onChange={value=>updateData(current=>recordActivityFeedback(current,active,value,new Date()))}/></details>
+     <div className="break-actions"><button className="primary" onClick={()=>navigate('home')}>回院种紫苏</button><button className="outline-button" onClick={()=>navigate('records')}>查看手记</button></div>
+    </section>}
+
+    {page==='records'&&<section className="break-page">
+     <div className="break-heading"><div><span className="section-kicker">窗边 · 草木册</span><h1>手记</h1></div><span>累计确认 {completed.length} 次</span></div>
+     <CourtyardJournal yard={data.courtyard} change={changeYard}/>
+     <section className="break-panel"><h2>随手休息记录</h2>{data.courtyard.notes.length?<ul>{[...data.courtyard.notes].reverse().map((item,index)=><li key={index}>{quickBreaks[item.kind][0]} · {new Date(item.at).toLocaleString('zh-CN')}</li>)}</ul>:<p>还没有随手记录。</p>}</section>
+     {data.journey.length>0&&<details className="break-panel"><summary>旧游历长卷</summary><JourneyCard visits={data.journey} staticOnly={data.staticLandscape}/></details>}
+     <details className="break-panel seasonal-note"><summary>节气短笺{term?` · ${term.content.name[data.cultureLanguage]}`:''}</summary>
+      <p>{term?.content.description[data.cultureLanguage]??'窗外光影在变化，留一点时间看看今天的天色。'}</p>
+     </details>
+     <section className="break-panel"><h2>本周活动</h2><div className="week-grid">{thisWeek.map(day=><div key={day.day}><span>{day.day.slice(5)}</span><strong>{day.count} 次</strong><small>{day.seconds} 秒</small></div>)}</div></section>
+     <section className="break-panel"><h2>历史明细</h2>{completed.length?<div className="history-list">{[...completed].reverse().map(session=><div key={session.id}>
+      <div><strong>{activityById(session.activityId)?.title??session.activityId}</strong><small>{new Date(session.completedAt??session.startedAt).toLocaleString('zh-CN')} · {sceneLabel(session.preference.scene)}{session.note?` · ${session.note}`:''}</small></div>
+      <span>{activityById(session.activityId)?durationLabel(activityById(session.activityId)!.durationSeconds):'—'}</span>
+     </div>)}</div>:<p>还没有完成记录</p>}</section>
+    </section>}
+
+    {page==='settings'&&<section className="break-page">
+     <div className="break-heading"><div><span className="section-kicker">廊柱 · 时辰簿</span><h1>我的节奏</h1></div></div>
+     <div className="settings-block">
+      <h2>活动偏好</h2><p>当前关注 {data.profile.focusAreas.map(focus=>focusLabels[focus]).join('、')}。</p>
+      <button className="outline-button" onClick={setup}>修改偏好与时段</button>
+      {blockedActivities(data.feedback).length>0&&<div className="blocked-actions"><strong>已避开的活动</strong>{blockedActivities(data.feedback).map(item=><div key={item.activityId}><span>{activityById(item.activityId)?.title??item.activityId}</span><button className="text-button" onClick={()=>updateData(current=>restoreActivity(current,item.activityId,new Date()))}>重新启用</button></div>)}</div>}
+     </div>
+     <div className="settings-block"><h2>提醒设置</h2>
+      <ReminderFields value={data.reminder} onChange={reminder=>updateData(current=>({...current,reminder,companion:current.companion?{...current.companion,
+       nextReminderAt:reminder.snoozedUntil??scheduleReminder(Date.now(),reminder,current.reminderEvents,reminder.intervalMinutes,current.adaptive)}:null}))}/>
+      <p>前台页面到点时可显示站内提醒。网页处于后台、设备休眠或页面关闭时，提醒可能延迟或不可用。</p>
+      <p>{browserNotificationCapability().message}</p>
+      <div className="companion-actions"><button className="outline-button" onClick={data.reminder.enabled?endCompanion:startCompanion}>{data.reminder.enabled?'关闭提醒':'开启提醒'}</button>
+       <button className="text-button" onClick={enableBrowserNotifications}>{data.reminder.browserNotifications?'检查通知权限':'开启浏览器通知'}</button></div>
+     </div>
+     <div className="settings-block"><h2>生活提醒</h2><p>每日按本机时间在前台显示。与休息提醒同时到期时会合并。关闭页面后停止提醒。</p>
+      <form className="yard-life-form" onSubmit={event=>{event.preventDefault();const label=lifeLabel.trim();if(!label||!lifeTime)return;changeYard(current=>({...current,reminders:[...current.reminders,{id:uid(),label,time:lifeTime,private:lifePrivate}]}));setLifeLabel('');setLifePrivate(false);}}>
+       <button type="button" className="outline-button" onClick={()=>setLifeLabel('喝水')}>填入喝水提醒</button>
+       <label>提醒事项<input required maxLength={40} value={lifeLabel} onChange={event=>setLifeLabel(event.target.value)} placeholder="如吃饭、收工、摘耳机"/></label>
+       <label>时间<input required type="time" value={lifeTime} onChange={event=>setLifeTime(event.target.value)}/></label>
+       <label className="checkbox-line"><input type="checkbox" checked={lifePrivate} onChange={event=>setLifePrivate(event.target.checked)}/>提示中隐藏事项</label>
+       <button className="outline-button">添加提醒</button>
+      </form>
+      {data.courtyard.reminders.map(item=><div className="yard-life-row" key={item.id}><span>{item.time} · {item.label}</span><button className="text-button" onClick={()=>changeYard(current=>({...current,reminders:current.reminders.filter(row=>row.id!==item.id)}))}>移除</button></div>)}
+     </div>
+     <AdaptiveSettings data={data} onChange={updateData}/>
+     <div className="settings-block"><h2>院落画面</h2><label className="checkbox-line"><input type="checkbox" checked={data.staticLandscape} onChange={event=>updateData(current=>({...current,staticLandscape:event.target.checked}))}/>减少动效，使用静态画面</label><p>系统的减少动态效果设置也会启用静态画面。</p></div>
+     <div className="settings-block"><h2>本地数据</h2><p>偏好、手记和庭院进度保存在当前浏览器。</p><div className="companion-actions"><button className="outline-button" onClick={exportData}>导出个人数据 JSON</button><button className="danger-button" onClick={clearLocalData}>清除全部本地数据</button></div></div>
+     <AccountPanel user={account.user} error={account.error} data={data} onData={setData}/>
+    </section>}
+     </div>
+    </section>
+   </main>
+  </div>
+  <nav inert={Boolean(editingProfile)||showReminder||lifeDue.length>0} className="mobile-nav" aria-label="手机导航">{nav.map(item=><button key={item.id} className={page===item.id?'active':''} aria-current={page===item.id?'page':undefined} onClick={()=>navigate(item.id)}><span aria-hidden="true">{item.icon}</span><small>{item.label}</small></button>)}</nav>
+
+  {lifeDue.length>0&&!showReminder&&<div className="reminder-overlay"><section className="reminder-dialog" role="dialog" aria-modal="true" aria-label="生活提醒"><h2>到时间了</h2><ul>{lifeDue.map(label=><li key={label}>{label}</li>)}</ul><button className="primary" autoFocus onClick={()=>setLifeDue([])}>知道了</button></section></div>}
+  {showReminder&&<div className="reminder-overlay"><section className="reminder-dialog" role="dialog" aria-modal="true" aria-label="休息提醒">
+   <span className="section-kicker">前台休息提醒</span><h2>给自己一个小间隙？</h2>{lifeDue.length>0&&<ul>{lifeDue.map(label=><li key={label}>{label}</li>)}</ul>}
+   {notice&&<p role="status">{notice}</p>}
+   {recommended?<div className="reminder-pick"><div><strong>{recommended.title}</strong><small>{durationLabel(recommended.durationSeconds)} · {activityCategory(recommended)} · {sceneLabel(selection.scene)}</small></div></div>:empty}
+   <div className="reminder-buttons">
+    {recommended&&<button className="primary" onClick={()=>begin(recommended,'reminder')}>现在活动</button>}
+    {recommended&&<button className="outline-button" onClick={shuffle}>换一个</button>}
+    {[15,30,60].map(minutes=><button key={minutes} className="outline-button" onClick={()=>respond('postponed',minutes)}>延后 {minutes} 分钟</button>)}
+   </div>
+   <details className="reminder-more"><summary>调整条件</summary><PresetPicker value={selection.preset} onChange={pickPreset}/>{fields}</details>
+   <div className="reminder-buttons">
+    <button className="text-button" onClick={()=>respond('skipped')}>跳过本次</button>
+    <button className="text-button" onClick={()=>respond('already-active',0,'已经活动过')}>我已经活动过了</button>
+    <button className="text-button" onClick={()=>respond('paused',Math.max(1,Math.ceil((new Date().setHours(24,0,0,0)-Date.now())/60000)),'今天不想被打扰')}>今天不想被打扰</button>
+    <label className="reminder-label">原因（可选）<select aria-label="提醒反馈原因" value={reason} onChange={event=>setReason(event.target.value)}>{['','正在专注','正在开会 / 上课','当前不方便活动','已经活动过','今天不想被打扰'].map(item=><option key={item} value={item}>{item||'不说明原因'}</option>)}</select></label>
+   </div>
+  </section></div>}
+  {editingProfile&&<Onboarding initial={data} editing={editingProfile==='edit'} onSave={saveProfile} onSkip={()=>{if(editingProfile==='first')updateData(current=>({...current,profile:{...current.profile,onboardingComplete:true}}));closeSetup();}}/>}
+ </div>;
 }
-function favoriteScene(sessions:Session[]){if(!sessions.length)return '';const count=new Map<Scene,number>();sessions.forEach(s=>count.set(s.preference.scene,(count.get(s.preference.scene)||0)+1));return sceneLabel([...count].sort((a,b)=>b[1]-a[1])[0][0]);}
