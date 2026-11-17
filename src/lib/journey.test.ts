@@ -9,7 +9,9 @@ import type {Session} from './types';
 test('office presets use the existing cards within posture, space and support limits',()=>{
  const data=initialData();
  const desk=conditionsForPreset('desk',data.preference);
- assert.deepEqual(candidates(desk,data.profile).map(card=>card.id),['chin-tuck','scapular-squeeze']);
+ const seated=candidates(desk,data.profile);
+ assert.ok(['chin-tuck','scapular-squeeze','desk-hand-open','desk-palm-turn','desk-heel-toe','seated-shoulder-roll'].every(id=>seated.some(card=>card.id===id)));
+ assert.ok(seated.every(card=>card.durationSeconds<=30&&card.meta.posture==='seated'&&card.meta.spaceRequired==='seat'&&!card.meta.equipmentRequired.length));
  const meeting=conditionsForPreset('meeting',desk);
  assert.ok(candidates(meeting,data.profile).every(card=>card.meta.posture==='seated'));
  assert.ok(candidates({...meeting,posture:'any'},data.profile).some(card=>card.id==='side-bend'));

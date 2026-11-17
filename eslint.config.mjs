@@ -1,7 +1,7 @@
 import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 export default [
- {ignores:['.next/**','node_modules/**','playwright-report/**','test-results/**','next-env.d.ts']},
+ {ignores:['.next/**','node_modules/**','playwright-report/**','test-results/**','next-env.d.ts','.taste-skill/**','.pitch-build/**']},
  js.configs.recommended,
  ...tseslint.configs.recommended,
  {files:['**/*.{ts,tsx}'],rules:{'no-undef':'off','@typescript-eslint/no-explicit-any':'off','@typescript-eslint/no-unused-vars':['error',{argsIgnorePattern:'^_',varsIgnorePattern:'^_'}]}},

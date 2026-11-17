@@ -1,0 +1,310 @@
+.rest-app{
+ --season-paper:#f5f5ef;--season-panel:#eaeee5;--paper:var(--season-paper);--panel:var(--season-panel);--sheet:#fafafa;--ink:#233b36;--soft:#465951;--edge:#c8d1c7;--accent:#274c40;--on-accent:#ffffff;
+ --art:#dce8df;--far:#a0b7a8;--mid:#7e9a8c;--near:#587d70;--orb:#f4edca;--twig:#47665b;--buds:#7d936f;
+ min-height:100vh;color:var(--ink);background:var(--paper);font-family:system-ui,"PingFang SC","Microsoft YaHei",sans-serif;font-size:15px;line-height:1.65;
+}
+.rest-app[data-season="summer"]{--season-paper:#edf2ea;--season-panel:#e1ece0;--art:#d4e9d5;--far:#9fbd9a;--mid:#72a084;--near:#4e7b62;--buds:#587953}
+.rest-app[data-season="autumn"]{--season-paper:#f5f0e5;--season-panel:#efe7d6;--art:#eee0bd;--far:#c3aa78;--mid:#ab9064;--near:#78694f;--buds:#ad613d;--orb:#fff0bc}
+.rest-app[data-season="winter"]{--season-paper:#f0f2ed;--season-panel:#e5ebe6;--art:#dce6e5;--far:#a4b8bb;--mid:#819b9d;--near:#537676;--orb:#f5eccd}
+.rest-app[data-weather="cloud"]{--art:#e0e6de;--orb:#edf0e6}
+.rest-app[data-weather="rain"]{--paper:color-mix(in srgb,var(--season-paper),#e2eeec 64%);--sheet:#f2f7f4;--panel:color-mix(in srgb,var(--season-panel),#d5e6e3 66%);--edge:#afc2bc;--art:#c8dbd8;--orb:#dae6de;--far:#93afaf;--mid:#718e94;--near:#486c73}
+.rest-app[data-weather="snow"]{--paper:color-mix(in srgb,var(--season-paper),#edf5f5 72%);--sheet:#f7faf8;--panel:color-mix(in srgb,var(--season-panel),#e1eae9 72%);--art:#dce9ec;--far:#a2bac3;--mid:#94adb5;--near:#58747f}
+.rest-app[data-light="morning"]{--orb:#fff1c7}
+.rest-app[data-light="dusk"]{--orb:#efbd8d}
+.rest-app[data-light="night"]{--art:#496160;--far:#75928d;--mid:#5f817c;--near:#395c58;--orb:#ebead7;--twig:#d9e6d9}
+.rest-app[data-light="night"] .art-orb{transform:translate(18px,-8px) scale(.72);transform-origin:293px 63px}
+.rest-app[data-light="morning"] .art-orb,.rest-app[data-light="dusk"] .art-orb{transform:translateY(32px)}
+.rest-frame{width:min(1100px,calc(100% - 48px));margin-inline:auto}
+.rest-header{border-bottom:1px solid var(--edge);background:var(--sheet)}
+.rest-header>.rest-frame{min-height:76px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.rest-app button,.rest-app input,.rest-app select{font:inherit}
+.rest-app button{color:var(--ink);border:1px solid var(--edge);background:var(--sheet);min-height:42px;padding:7px 15px;border-radius:5px;font-weight:600}
+.rest-app button:not(:disabled):hover{border-color:var(--accent)}
+.rest-app button.rest-brand{display:flex;gap:13px;align-items:center;text-align:left;padding:0;border:0;background:none;font-weight:700;font-size:18px;line-height:1.25}
+.rest-brand small{display:block;font-size:12px;color:var(--soft);font-weight:400;margin-top:4px}
+.rest-seal{display:grid;place-items:center;width:37px;height:37px;border:1px solid var(--accent);color:var(--accent);border-radius:3px;font:600 22px "Songti SC",SimSun,serif}
+.rest-header-meta{font-size:13px;display:grid;text-align:right;color:var(--soft);font-variant-numeric:tabular-nums}
+.rest-main{padding:33px 0 110px}
+.rest-main h1{font:600 clamp(27px,4vw,32px)/1.3 "Songti SC","Noto Serif CJK SC",SimSun,serif;margin:0 0 18px}
+.rest-page-title{display:flex;justify-content:space-between;gap:12px;align-items:baseline}
+.season-label{font-size:14px;color:var(--soft);white-space:nowrap}
+.rest-app h2{font-size:20px;line-height:1.35;margin:0 0 8px}
+.rest-app h3{font-size:17px;line-height:1.35;margin:0 0 5px}
+.rest-app p{margin:8px 0 12px}
+.rest-app small,.quiet-copy{font-size:13px;color:var(--soft)}
+.rest-app a{color:var(--accent);text-underline-offset:3px}
+.rest-app input:not([type="checkbox"]),.rest-app select{border:1px solid var(--edge);border-radius:5px;background:var(--sheet);color:var(--ink);min-height:40px;padding:6px 9px;max-width:100%;min-width:0}
+.rest-app input[type="checkbox"]{accent-color:var(--accent);width:17px;height:17px;margin:0;flex:none}
+.rest-hero{display:grid;grid-template-columns:7fr 5fr;border:1px solid var(--edge);background:var(--sheet);border-radius:10px;overflow:hidden}
+.rest-hero-copy{display:flex;flex-direction:column;align-items:flex-start;padding:24px 26px;min-width:0}
+.rest-conditions,.rest-form,.rest-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.rest-conditions{align-items:end;gap:8px 10px}
+.rest-conditions label,.rest-form label:not(.inline-field),.note-input,.rest-app .onboard-times label{display:grid;gap:4px;color:var(--soft);font-size:13px}
+.rest-form{margin:12px 0;align-items:end}
+.rest-extra{margin-top:12px}
+.rest-app button.rest-primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);min-width:105px}
+.rest-app button.rest-primary:hover{filter:brightness(1.12)}
+.rest-app button.rest-text{background:transparent;border-color:transparent;padding-inline:5px;text-decoration:underline;text-underline-offset:4px;font-weight:500}
+.suggestion-copy{margin:28px 0 14px}
+.suggestion-copy h2{font:600 clamp(26px,3.2vw,32px)/1.35 "Songti SC","Noto Serif CJK SC",SimSun,serif;margin:5px 0 6px}
+.suggestion-copy p{max-width:31em}
+.rest-visual{display:flex;flex-direction:column;justify-content:space-between;min-width:0;background:var(--art);color:var(--ink)}
+.ink-landscape{display:block;width:100%;height:auto;flex:1;min-height:0;color:var(--twig)}
+.art-orb{color:var(--orb)}.art-far{fill:var(--far)}.art-mid{fill:var(--mid)}.art-near{fill:var(--near)}.art-buds{fill:var(--buds)}.art-ripples{color:var(--orb);opacity:.8}.art-rain{color:#354e50}
+.rest-visual-caption{display:flex;align-items:center;justify-content:space-between;gap:9px;padding:10px 14px;font-size:13px;background:var(--panel)}
+.rest-visual-caption span:last-child{white-space:nowrap;color:var(--soft)}
+@media(prefers-reduced-motion:no-preference){
+ .rest-app[data-static="false"] .art-rain{animation:rest-rain 2.5s ease-in-out infinite alternate}
+ @keyframes rest-rain{from{transform:translateY(-6px)}to{transform:translateY(4px)}}
+}
+.rest-panel{border:1px solid var(--edge);border-radius:10px;padding:20px 24px;margin:16px 0;background:var(--sheet);min-width:0}
+.rest-panel.guide-panel{margin-top:0}
+.slip-panel{background:var(--panel)}
+.slip-panel .panel-heading p{margin:2px 0 0;color:var(--soft)}
+.slip-face{padding:16px 0 0;margin-top:16px;border-top:1px solid var(--edge)}
+.slip-face .slip-line{font:600 20px/1.5 "Songti SC","Noto Serif CJK SC",SimSun,serif;margin-bottom:0}
+.panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.rest-panel details{border-top:1px solid var(--edge);padding:10px 0;margin-top:8px}
+.rest-panel summary{cursor:pointer;font-weight:600}
+.check-panel h2,.check-panel>p{margin:0 0 5px}
+.rest-footer{color:var(--soft);font-size:12px;padding:2px 0 8px}
+.rest-footer>div{display:flex;gap:4px 12px;flex-wrap:wrap}
+.rest-nav{position:fixed;z-index:5;bottom:0;inset-inline:0;border-top:1px solid var(--edge);background:var(--sheet);padding-bottom:env(safe-area-inset-bottom)}
+.rest-nav .rest-frame{display:grid;grid-template-columns:repeat(3,1fr);max-width:620px}
+.rest-nav button{border:0;border-radius:0;border-top:2px solid transparent;display:flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:8px;color:var(--soft)}
+.rest-nav button[aria-current]{color:var(--ink);border-top-color:var(--accent);background:var(--panel)}
+.rest-tabs{display:flex;gap:6px;align-items:center}
+.rest-tabs button[aria-pressed="true"],.rest-actions button[aria-pressed="true"]{background:var(--panel);border-color:var(--accent)}
+.inline-field{display:flex;gap:8px;align-items:center}
+.journal-list{list-style:none;padding:0;margin:8px 0}
+.journal-list li{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--edge);overflow-wrap:anywhere}
+.journal-list li:last-child{border-bottom:0}
+.journal-list small,.journal-list strong{display:block}
+.journal-list time{font-size:12px;color:var(--soft);white-space:nowrap}
+.specimens{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}
+.specimens article{border:1px solid var(--edge);border-radius:8px;padding:16px;display:grid;grid-template-columns:minmax(68px,1fr) minmax(0,2fr);gap:16px}
+.specimens article.specimen-target{border-color:var(--accent)}
+.specimen-art{width:100%;max-height:125px;background:var(--panel);border-radius:5px}
+.rest-timer{font-size:38px;font-variant-numeric:tabular-nums}
+.guide-panel ol{padding-left:24px}
+.guide-panel li{margin-bottom:8px}
+.rest-app .onboard-times{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:12px 0}
+.life-row{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:8px;align-items:center;border-bottom:1px solid var(--edge);padding:7px 0}
+.life-row .inline-field{min-height:44px}
+.life-list{margin-bottom:15px}
+.rest-notice{display:flex;align-items:center;justify-content:space-between;gap:12px;border:1px solid var(--edge);padding:6px 12px;background:var(--panel);margin-bottom:12px}
+.rest-notice button{padding:4px 10px;min-height:36px}
+.rest-loading{padding:36px}
+.rest-app .account-panel{margin:16px 0}
+@media(max-width:660px){
+ .rest-frame{width:calc(100% - 32px)}
+ .rest-main{padding:20px 0 90px}
+ .rest-header>.rest-frame{min-height:65px}
+ .rest-app button.rest-brand{gap:8px;font-size:16px}
+ .rest-brand small,.rest-header-meta{font-size:11px}
+ .rest-seal{width:33px;height:33px}
+ .rest-main h1{margin-bottom:12px}
+ .rest-hero{grid-template-columns:1fr}
+ .rest-hero-copy,.rest-panel{padding:15px}
+ .rest-conditions{gap:6px 8px}
+ .rest-app button{min-height:44px}
+ .rest-conditions select{padding-inline:5px}
+ .suggestion-copy{margin-top:16px;margin-bottom:6px}
+ .rest-visual .ink-landscape{height:104px;object-fit:cover;width:100%}
+ .rest-visual-caption{padding:6px 10px;font-size:12px}
+ .rest-nav .rest-frame{width:100%}
+ .rest-nav button{flex-direction:column;gap:2px;min-height:58px;font-size:13px}
+ .specimens{grid-template-columns:1fr}
+ .rest-app .onboard-times{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .reminder-bundle li{display:block}
+ .reminder-bundle li .rest-actions{margin-top:6px}
+}
+.journal-art{float:right;width:min(35%,245px);margin:0 0 12px 18px;background:var(--art);border-radius:6px;overflow:hidden}
+.journal-list{clear:both}
+@media(max-width:660px){.journal-art{float:none;width:100%;margin:10px 0}.journal-art .ink-landscape{height:92px;object-fit:cover}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+.exhibit-slots{list-style:none;padding:0;margin:16px 0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.exhibit-slots li{border:1px dashed var(--edge);min-height:86px;border-radius:6px;padding:10px 13px;display:grid;justify-items:start;align-content:start;gap:6px}
+.exhibit-slots li[data-lit="true"]{border-style:solid;border-color:var(--accent);background:var(--panel)}
+.exhibit-slots li span{color:var(--soft);font-size:13px}
+.rest-app[data-weather="rain"] .art-orb{opacity:.42}
+.rest-app[data-weather="snow"] .art-orb{opacity:.6}
+.herb-bed{display:grid;grid-template-columns:minmax(165px,240px) minmax(0,1fr);gap:24px;align-items:center}
+.herb-view{background:var(--panel);border:1px solid var(--edge);border-radius:6px;color:var(--accent)}
+.herb-view svg{width:100%;display:block;max-height:185px}
+.herb-growth{display:flex;list-style:none;padding:0;margin:12px 0;gap:5px;max-width:370px}
+.herb-growth li{flex:1;text-align:center;border-top:2px solid var(--edge);font-size:13px;padding:3px 0;color:var(--soft)}
+.herb-growth li[data-reached="true"]{border-color:var(--accent);color:var(--ink)}
+.herb-growth li[aria-current="step"]{font-weight:700}
+.herb-feedback{font-size:13px;color:var(--soft);min-height:1.65em;margin-top:6px}
+@media(prefers-reduced-motion:no-preference){.rest-app[data-static="false"] .herb-water-trail{animation:herb-water .6s ease-out both}@keyframes herb-water{from{transform:translateY(-12px);opacity:0}35%{opacity:1}to{transform:translateY(15px);opacity:0}}}
+@media(max-width:660px){.herb-bed{grid-template-columns:1fr;gap:12px}.herb-view svg{max-height:138px}}
+.rest-conditions .rest-equipment{width:100%;margin-top:4px}
+.rest-conditions .rest-equipment label{display:flex;gap:7px;min-height:34px}
+.activity-library-list button{flex:none}
+.activity-library-list p{margin:4px 0 0}
+.herb-water-trail{opacity:0}
+
+.slip-ritual{display:grid;grid-template-columns:180px minmax(0,1fr);gap:22px;align-items:center;padding:15px 24px;margin:22px 0;background:var(--panel);border-block:1px solid var(--edge)}
+.slip-ritual-art{align-self:start;color:#635447}
+.slip-ritual-art svg{display:block;width:100%;overflow:visible}
+.slip-ritual-copy h2,.book-cover h2,.herb-bed h2{font:700 25px/1.3 "Songti SC","Noto Serif CJK SC",SimSun,serif}
+.slip-ritual .slip-face{max-width:62ch}
+.slip-ritual .slip-line{border-left:3px solid var(--seal);padding:4px 0 4px 13px}
+.slip-flying{transform:translate(19px,2px) rotate(18deg);transform-origin:92px 75px}
+.herb-book{margin:21px 0;background:#f7f3e8;color:#2b3a37;border:1px solid #aab2a8;border-bottom:5px double #9fa99d;border-radius:3px 6px 7px 3px;overflow:hidden}
+.book-cover{display:flex;align-items:center;gap:16px;background:var(--cloth);color:#fff8e9;padding:20px 25px;border-left:8px solid #526770}
+.book-cover h2,.book-cover p{margin:0}
+.book-cover p{font-size:13px;color:#e5e9e4}
+.book-cover-mark{border:1px solid #ecc7af;padding:6px 5px;background:var(--seal);color:#fff7ea;font-family:"Songti SC",SimSun,serif;writing-mode:vertical-rl;letter-spacing:.13em}
+.book-controls{display:flex;flex-wrap:wrap;gap:7px;padding:10px 17px;border-bottom:1px solid #d4ccba}
+.book-controls button[aria-pressed="true"]{background:#e7e0d0;border-color:#a2967f}
+.book-spread{position:relative;margin:0;gap:0;transform-origin:50% 50%}
+.book-spread article{border:0;border-radius:0;padding:22px 26px;display:flex;flex-direction:column;gap:9px;min-width:0;background:#fcf8ed}
+.book-spread article+article{border-left:3px double #c7beaa;background:#f7f1e4}
+.book-spread .specimen-art{max-height:150px;border-radius:0;background:none}
+.book-spread .book-folio{color:#663a38;border-bottom:1px solid #d5cbb7;padding-bottom:6px;font:600 14px/1.6 "Songti SC",SimSun,serif}
+.book-spread article h3{font:700 23px/1.3 "Songti SC",SimSun,serif}
+.book-colophon{padding:9px 17px;margin:0!important;border-top:1px solid #d4ccba}
+.herb-book[data-page="leaf"] #specimen-peel,.herb-book[data-page="peel"] #specimen-leaf{display:none}
+.herb-book:not([data-page="spread"]) .book-spread{grid-template-columns:1fr}
+.herb-book:not([data-page="spread"]) .book-spread article{border-left:0}
+.herb-view{border-radius:2px;border:1px solid var(--edge)}
+@media(prefers-reduced-motion:no-preference){
+ .slip-ritual[data-static="false"][data-phase="drawing"] .slip-cylinder{transform-origin:90px 134px;animation:bamboo-shake .63s ease-in-out both}
+ .slip-ritual[data-static="false"][data-phase="drawing"] .slip-flying{animation:bamboo-rise 1.08s ease-out both}
+ .rest-app[data-static="false"] .book-spread[data-turned="true"]{animation:specimen-turn .32s ease-out both}
+ .rest-app[data-static="false"] .herb-view:not([data-growth="still"]) .herb-growing{transform-origin:105px 132px;animation:herb-unfurl .78s cubic-bezier(.2,.7,.3,1) both}
+ @keyframes bamboo-shake{0%,100%{transform:rotate(0)}20%,62%{transform:rotate(-11deg)}42%,80%{transform:rotate(11deg)}}
+ @keyframes bamboo-rise{0%,46%{opacity:0;transform:translate(0,65px) scale(.8)}55%{opacity:1}85%{transform:translate(17px,-12px) rotate(14deg)}100%{transform:translate(19px,2px) rotate(18deg)}}
+ @keyframes specimen-turn{from{transform:perspective(660px) rotateY(-8deg);opacity:.62}to{transform:none;opacity:1}}
+ @keyframes herb-unfurl{from{transform:scale(.64,.43);opacity:.5}70%{transform:scale(1.035,1.025)}to{transform:scale(1);opacity:1}}
+}
+@media(max-width:660px){
+ .rest-main{padding-top:20px}
+ .rest-hero{grid-template-columns:1fr}
+ .rest-hero-copy{padding:15px}
+ .slip-ritual{grid-template-columns:68px minmax(0,1fr);gap:10px;padding:12px 9px}
+ .slip-ritual-art{align-self:start;padding-top:4px}
+ .slip-ritual-copy h2,.book-cover h2,.herb-bed h2{font-size:22px}
+ .slip-ritual .rest-actions{gap:5px}.slip-ritual .rest-actions button{padding-inline:8px}
+ .book-cover{padding:12px 17px}
+ .book-spread article{padding:15px 17px}
+ .book-spread article+article{border-left:0;border-top:3px double #c7beaa}
+}
+@media(max-width:660px){
+ .rest-visual .ink-landscape{height:136px;flex:none}
+ .slip-ritual{margin-block:16px}
+}
+
+/* Nature journal direction, based on the user's mobile UI references. */
+.rest-app{
+ --ink:#263c2b;--soft:#53634d;--accent:#456436;--on-accent:#ffffff;
+ --sheet:#ffffff;--edge:#dce4d4;--cloth:#d7e6bd;--seal:#4d6937;
+ --season-paper:#f3f6ed;--season-panel:#e8efd9;
+ font-family:system-ui,"PingFang SC","Microsoft YaHei",sans-serif;background-image:none;
+}
+.rest-app[data-season="spring"]{--season-paper:#f3f7ee;--season-panel:#e4efd4;--art:#dcebc4;--far:#a9c38c;--mid:#82a368;--near:#607b48}
+.rest-app[data-season="summer"]{--season-paper:#f0f5ec;--season-panel:#dfeddb;--art:#d9eacb;--far:#adc88d;--mid:#82ab65;--near:#4c753d}
+.rest-app[data-season="autumn"]{--season-paper:#f5f6ed;--season-panel:#e8edd5;--art:#e7edc8;--far:#bacb95;--mid:#9ab375;--near:#6c8a4e;--buds:#8c9d54}
+.rest-app[data-season="winter"]{--season-paper:#f0f5f0;--season-panel:#e1ecdf;--art:#deebde;--far:#b1c7a6;--mid:#89a77c;--near:#5c8054}
+.rest-app[data-weather="rain"]{--ink:#253b32;--soft:#4c6258;--accent:#3e6755;--season-paper:#eef4ef;--season-panel:#dbe9df}
+.rest-app[data-light="night"]{--art:#7b9881;--far:#92ae8e;--mid:#77996f;--near:#4f754b;--twig:#eff6df}
+.rest-header{background:transparent;color:var(--ink);border:0}
+.rest-header>.rest-frame{min-height:76px}
+.rest-app button.rest-brand{color:var(--ink);font-size:17px}
+.rest-brand small,.rest-header-meta{color:var(--soft)}
+.rest-seal{border:0;color:var(--accent);background:#dce9c6;transform:none;border-radius:14px;font:700 23px/1 "Songti SC",serif;width:42px;height:42px}
+.rest-main{padding-top:12px}
+.rest-main h1{font:750 30px/1.3 system-ui,"PingFang SC",sans-serif;margin:0 0 12px}
+.rest-page-title{border:0;margin-bottom:6px}
+.rest-greeting{font-size:13px;color:var(--soft);margin:0 0 4px!important}
+.season-label{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--soft)}
+.season-label>span{display:grid;place-items:center;border:0;width:28px;height:28px;border-radius:50%;background:var(--panel);color:var(--accent);font-family:inherit}
+.rest-app button{border-radius:999px;font-weight:600;padding:8px 17px}
+.rest-app button.rest-primary{background:#bdd783;color:#243a1d;border:1px solid #bdd783}
+.rest-app button.rest-text{border:0;text-decoration:none;color:var(--soft)}
+.rest-app input:not([type="checkbox"]),.rest-app select{border-radius:12px;background:#f6f8f1;border:1px solid var(--edge)}
+.rest-hero{border:0;border-radius:24px;grid-template-columns:1.12fr 1fr;isolation:isolate}
+.rest-hero-copy{padding:25px 28px}
+.rest-conditions label{font-size:12px;gap:5px}
+.suggestion-copy{margin-top:26px}
+.suggestion-copy h2{font:750 29px/1.35 system-ui,"PingFang SC",sans-serif}
+.suggestion-copy p{color:var(--soft);font-size:14px;max-width:29em}
+.rest-visual{position:relative;overflow:hidden;border-radius:0;background:var(--art)}
+.rest-visual .ink-landscape{width:100%;min-height:220px}
+.rest-visual-caption{position:relative;z-index:1;background:var(--panel);border:0;font-size:12px;padding:10px 16px}
+.leaf-companion{width:120px;height:116px;flex:none}
+.rest-visual>.leaf-companion{position:absolute;bottom:38px;left:9%;width:112px;height:112px}
+.rest-panel{border:0;border-radius:22px;padding:22px 25px;margin-block:17px}
+.rest-app h2{font-size:19px;font-weight:700}
+.rest-app h3{font-size:17px}
+.slip-ritual{background:var(--panel);border:0;border-radius:22px;margin:18px 0;padding:18px 24px;grid-template-columns:110px minmax(0,1fr);gap:19px}
+.slip-ritual-copy h2,.herb-bed h2{font:700 21px/1.4 system-ui,"PingFang SC",sans-serif}
+.slip-ritual-copy>p{font-size:14px;color:var(--soft)}
+.slip-ritual-art{padding:0}
+.slip-ritual .slip-line{border-color:#95af64}
+.rest-nav{border:0;background:#ffffff}
+.rest-nav .rest-frame{max-width:650px}
+.rest-nav button{border:0;border-radius:0;background:none;font-size:14px;font-weight:500}
+.rest-nav button[aria-current]{border:0;background:none;color:#3e5e2f;font-weight:750}
+.rest-nav button[aria-current] svg{background:#deedbf;border-radius:8px;box-sizing:content-box;padding:4px;margin:-4px}
+.rest-tabs{background:#e7edde;padding:5px;border-radius:999px;width:fit-content;gap:3px;margin-bottom:19px}
+.rest-tabs button{border:0;background:none;padding:7px 17px}
+.rest-tabs button[aria-pressed="true"]{background:#fff;border:0}
+.journal-welcome{display:flex;align-items:center;justify-content:space-between;background:var(--panel);border-radius:17px;padding:17px 21px;margin:16px 0}
+.journal-welcome p{margin:5px 0}.journal-welcome strong{font-size:34px;font-weight:750}.journal-welcome span{font-size:13px;color:var(--soft)}
+.journal-art{display:none}
+.journal-list li{padding:16px 0}
+.journal-list strong{font-weight:650}
+.herb-view{border:0;border-radius:20px;background:#e7f0da}
+.herb-growth li{border-top:3px solid #dfe7d6}.herb-growth li[data-reached="true"]{border-color:#a3bd70}
+.herb-book{border:0;border-bottom:5px double #c6cfb3;border-radius:20px;margin:20px 0;background:#fcfcf5}
+.book-cover{border-left:10px solid #b5c792;background:#d8e7bc;color:#2d4524;padding:18px 24px}
+.book-cover h2{font:700 25px/1.4 system-ui,"PingFang SC",sans-serif}.book-cover p{color:#52673d}
+.book-cover-mark{background:#f5f8eb;color:#52703d;border:0;border-radius:7px;padding:8px}
+.book-controls{background:#f0f5e5;border:0;padding:10px 18px}
+.book-controls button{border:0;background:none}.book-controls button[aria-pressed="true"]{background:#dbe9be;color:#304823}
+.book-spread article{background:#fffef6;padding:24px 28px}
+.book-spread article+article{background:#f8f9ed;border-color:#d4dac5}
+.book-spread .book-folio{color:#60734a;border-color:#dbe0cb}
+.book-spread article h3{font-family:system-ui,"PingFang SC",sans-serif}
+.book-colophon{border-color:#dce1d0}
+.rest-footer{padding:10px 3px 4px;font-size:12px}
+.rest-notice{border:0;border-radius:15px}
+.exhibit-slots li,.exhibit-slots li[data-lit="true"]{border-radius:14px}
+.rest-timer{font-size:48px;font-weight:600}
+@media(max-width:660px){
+ .rest-frame{width:calc(100% - 36px)}
+ .rest-header>.rest-frame{min-height:69px}
+ .rest-app button.rest-brand{font-size:15px}
+ .rest-brand small{font-size:11px}
+ .rest-header-meta{font-size:11px}
+ .rest-main{padding-top:10px}
+ .rest-main h1{font-size:28px;margin-bottom:10px}
+ .rest-hero{grid-template-columns:1fr;border-radius:22px}
+ .rest-hero-copy{padding:19px 18px 17px}
+ .rest-conditions{gap:8px}
+ .rest-conditions select{padding-inline:7px}
+ .rest-conditions .rest-text{font-size:13px;padding-inline:5px}
+ .suggestion-copy{margin-top:20px;margin-bottom:11px}
+ .suggestion-copy h2{font-size:27px}
+ .rest-hero .rest-actions{gap:6px}
+ .rest-hero .rest-actions button{padding-inline:14px}
+ .rest-hero .rest-actions .rest-text{padding-inline:5px;font-size:13px}
+ .rest-visual .ink-landscape{height:117px;min-height:117px;flex:none}
+ .rest-visual>.leaf-companion{width:84px;height:84px;bottom:30px;left:8%}
+ .rest-visual-caption{padding:7px 12px;font-size:11px}
+ .rest-visual-caption span:first-child{max-width:77%}
+ .rest-panel{padding:19px 18px;border-radius:20px}
+ .slip-ritual{grid-template-columns:64px minmax(0,1fr);gap:10px;padding:15px 13px;border-radius:20px}
+ .slip-ritual-copy h2{font-size:21px}
+ .slip-ritual-copy>p{font-size:13px;margin-block:5px 10px}
+ .slip-ritual .rest-actions button{padding-inline:10px;font-size:13px}
+ .rest-tabs{width:100%;justify-content:space-between}.rest-tabs button{padding-inline:12px}
+ .journal-welcome{padding:14px}.journal-welcome .leaf-companion{width:90px;height:94px}
+ .book-spread article{padding:20px}
+ .book-spread article+article{border-left:0;border-top:3px double #d4dac5}
+ .book-cover{padding:16px}
+ .book-controls{gap:3px;padding-inline:12px}.book-controls button{padding-inline:12px}
+}

@@ -1,4 +1,4 @@
-export type EvidenceSource={id:string;title:string;organization:string;url:string;activityIds:string[];supportedClaim:string;reviewStatus:'verified-2026-10-13'|'verified-2026-10-15'|'unverified';scope:'general-context'|'technique';copyrightNote:string};
+export type EvidenceSource={id:string;title:string;organization:string;url:string;activityIds:string[];supportedClaim:string;reviewStatus:'verified-2026-10-13'|'verified-2026-10-15'|'verified-2026-11-11'|'unverified';scope:'general-context'|'technique';copyrightNote:string};
 
 // Links and claims are reviewed separately from action instructions. No source images or prose are copied.
 export const evidenceSources:EvidenceSource[]=[
@@ -10,5 +10,9 @@ export const evidenceSources:EvidenceSource[]=[
  {id:'nhs-strength',title:'Strength exercises',organization:'NHS',url:'https://www.nhs.uk/live-well/exercise/strength-exercises/',activityIds:['sit-to-stand', 'calf-raises'],supportedClaim:'支持动作方向与按能力逐步进行；本产品计时用于短休息，不作为医学剂量或个体效果依据。',reviewStatus:'verified-2026-10-15',scope:'technique',copyrightNote:'中文概述，不复制图片、视频或原文。'},
  {id:'nhs-balance',title:'Balance exercises',organization:'NHS',url:'https://www.nhs.uk/live-well/exercise/balance-exercises/',activityIds:['side-walk'],supportedClaim:'支持动作方向与按能力逐步进行；本产品计时用于短休息，不作为医学剂量或个体效果依据。',reviewStatus:'verified-2026-10-15',scope:'technique',copyrightNote:'中文概述，不复制图片、视频或原文。'},
  {id:'nhs-walking',title:'Walking for health',organization:'NHS',url:'https://www.nhs.uk/live-well/exercise/walking-for-health/',activityIds:['easy-walk'],supportedClaim:'支持动作方向与按能力逐步进行；本产品计时用于短休息，不作为医学剂量或个体效果依据。',reviewStatus:'verified-2026-10-15',scope:'technique',copyrightNote:'中文概述，不复制图片、视频或原文。'},
+ {id:'leeds-wrist',title:'Wrist exercises',organization:'Leeds Teaching Hospitals NHS Trust',url:'https://www.leedsth.nhs.uk/patients/resources/wrist-exercises/',activityIds:['desk-hand-open','desk-palm-turn'],supportedClaim:'支持手指开合和前臂翻掌的动作方向；不验证 App 的休息时长。',reviewStatus:'verified-2026-11-11',scope:'technique',copyrightNote:'仅链接与自写动作概述。'},
+ {id:'sussex-chair',title:'Chair exercises',organization:'University Hospitals Sussex NHS Foundation Trust',url:'https://www.uhsussex.nhs.uk/resources/chair-exercises/',activityIds:['desk-heel-toe'],supportedClaim:'支持坐姿交替抬脚跟与前脚掌的方向。',reviewStatus:'verified-2026-11-11',scope:'technique',copyrightNote:'仅链接与自写动作概述。'},
+ {id:'berkshire-shoulder',title:'Physiotherapy advice: shoulder rolls',organization:'Berkshire Healthcare NHS Foundation Trust',url:'https://www.berkshirehealthcare.nhs.uk/advice/frozen-shoulder',activityIds:['seated-shoulder-roll'],supportedClaim:'支持放松双臂后轻抬双肩并向后绕；不提供康复计划。',reviewStatus:'verified-2026-11-11',scope:'technique',copyrightNote:'仅链接与自写动作概述。'},
+
 ];
 export const sourcesFor=(activityId:string)=>evidenceSources.filter(s=>s.activityIds.includes(activityId));

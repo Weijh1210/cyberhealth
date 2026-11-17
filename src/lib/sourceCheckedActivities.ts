@@ -1,6 +1,6 @@
 import type {Activity,Duration,FocusArea,Scene} from './types';
 
-type Card={id:string;title:string;nameEn:string;focus:FocusArea[];duration:Duration;level:'L1'|'L2'|'L3';space:'seat'|'small'|'spacious'|'outdoor';source:string;steps:string[];warning:string;equipment?:string[]};
+type Card={id:string;title:string;nameEn:string;focus:FocusArea[];duration:Duration;level:'L1'|'L2'|'L3';space:'seat'|'small'|'spacious'|'outdoor';source:string;steps:string[];warning:string;description?:string;equipment?:string[]};
 const cards:Card[]=[
  {id:'neck-rotation',title:'颈部缓转',nameEn:'Neck Rotation',focus:['neck'],duration:60,level:'L1',space:'seat',source:'nhs-flexibility',steps:['坐直，肩膀放松，平视前方。','头缓慢转向左侧舒适处，停约 5 秒后回正。','右侧同样进行，按舒适程度每侧最多 3 次。'],warning:'不追求转动角度；颈部症状加重时停止。'},
  {id:'seated-twist',title:'坐姿轻转身',nameEn:'Seated Upper-body Twist',focus:['upperBack','back'],duration:60,level:'L1',space:'seat',source:'nhs-sitting',steps:['坐稳，双脚落地，双臂交叉搭肩。','骨盆不动，上身向左轻转，舒适处停约 5 秒。','回正后换右侧，慢慢交替。'],warning:'不扭到极限；脊背不适或有限制时避开。',equipment:['stable-chair']},
@@ -12,9 +12,14 @@ const cards:Card[]=[
  {id:'side-bend',title:'站姿轻侧伸',nameEn:'Standing Side Bend',focus:['lowerBack'],duration:60,level:'L2',space:'small',source:'nhs-flexibility',steps:['站稳，双脚与髋同宽。','一只手沿腿侧缓缓下移，躯干轻侧倾。','舒适处停约 2 秒回正，换侧。'],warning:'不向前后弯折；腰背不适或平衡受限时避开。'},
  {id:'side-walk',title:'小步侧向走',nameEn:'Sideways Walking',focus:['legs','fullBody'],duration:180,level:'L3',space:'spacious',source:'nhs-balance',steps:['确认空地平整，旁边有墙可扶。','双膝微松，一只脚缓慢向侧边跨小步。','另一脚跟上，向两边从容交替。'],warning:'平衡受限时避开，不交叉双脚。',equipment:['wall']},
  {id:'easy-walk',title:'从容走一段',nameEn:'Easy Walk',focus:['legs','fullBody'],duration:300,level:'L3',space:'outdoor',source:'nhs-walking',steps:['选一段平整、安全的路线，穿舒适鞋。','收起手机，用轻松的节奏步行。','按自己的能力返回，不追求距离。'],warning:'注意天气与交通；不适即停，不边走边看屏幕。'},
+ {id:'desk-hand-open',title:'手指轻开合',nameEn:'Gentle Hand Open and Close',focus:['wrists'],duration:30,level:'L1',space:'seat',source:'leeds-wrist',description:'放下笔或鼠标，让手指慢慢打开再合拢。',steps:['坐稳，前臂靠在桌面或大腿上，手腕放平。','手指轻轻张开，再松松合拢。','慢慢松开，可换另一只手。'],warning:'手指只动到舒服的位置，不攥紧拳头。'},
+ {id:'desk-palm-turn',title:'手掌缓慢翻转',nameEn:'Gentle Forearm Rotation',focus:['wrists'],duration:30,level:'L1',space:'seat',source:'leeds-wrist',description:'手肘靠近身体，轻轻把手掌翻上再翻下。',steps:['坐稳，手肘靠近身体，前臂可轻靠桌沿。','保持手腕平直，慢慢转动前臂，让掌心朝上。','缓慢翻回朝下，再回到舒服的位置；可换另一侧。'],warning:'不用另一只手加压，不追求转到底。'},
+ {id:'desk-heel-toe',title:'坐姿脚跟脚尖轮换',nameEn:'Seated Heel and Toe Lifts',focus:['legs'],duration:30,level:'L1',space:'seat',source:'sussex-chair',description:'双脚保持支撑，小幅换一换脚跟和脚尖。',steps:['坐稳，双脚平放在地面，确认桌下有余地。','脚尖着地，轻抬脚跟，再轻放回去。','脚跟着地，轻抬前脚掌再放下；按舒适程度交替。'],warning:'身体保持平稳，动作不用抬高，不做弹跳。'},
+ {id:'seated-shoulder-roll',title:'双肩轻绕',nameEn:'Gentle Shoulder Rolls',focus:['shoulders','upperBack'],duration:30,level:'L1',space:'seat',source:'berkshire-shoulder',description:'让双肩小幅向后绕一圈，再自然落下。',steps:['坐稳，手臂垂在身体两侧。','双肩稍稍抬起，轻轻向后绕。','慢慢放下，舒服的话再做几次。'],warning:'保持小幅度，不用力耸肩；肩膀不舒服就停。'},
+
 ];
 export const sourceCheckedActivities:Activity[]=cards.map(c=>({
- id:c.id,title:c.title,description:'换一换固定姿势，按自己的舒适程度慢慢来。',durationSeconds:c.duration,steps:c.steps,
+ id:c.id,title:c.title,description:c.description??'换一换固定姿势，按自己的舒适程度慢慢来。',durationSeconds:c.duration,steps:c.steps,
  sceneTags:(c.space==='outdoor'?['home','outdoor']:c.level==='L1'?['library','office','home','classroom']:['office','home','outdoor']) as Scene[],
  requiresStanding:['small','outdoor'].includes(c.space)||c.id==='side-walk',requiresOutdoor:c.space==='outdoor',requiresAudio:false,movementLevel:c.space==='outdoor'||c.id==='side-walk'?'walk':'gentle',themeTags:[],focusTags:c.focus,precautions:c.warning,source:'NHS 公开动作资料，中文步骤为概述；计时为产品设计。',reviewStatus:'source-checked',kind:'来源核对动作',icon:c.space==='outdoor'?'↝':'〰',
  meta:{nameEn:c.nameEn,category:c.space==='outdoor'?'walk':'micro-movement',level:c.level,targetBodyParts:c.focus,posture:c.space==='seat'||c.id==='chest-open'?'seated':c.space==='outdoor'||c.id==='side-walk'?'walking':'standing',spaceRequired:c.space,attentionLevel:c.level==='L1'?'low':'noticeable',noiseLevel:'silent',equipmentRequired:c.equipment||[],repetitions:null,holdSeconds:null,commonMistakes:['追赶计时进度或勉强达到幅度'],expectedBenefits:'短暂改变固定姿势；不承诺医学效果。',safetyWarnings:[c.warning,'疼痛、眩晕、麻木或无力时停止；近期损伤、手术或已有活动限制时先咨询专业人员。'],contraindications:['相关部位活动引起症状、或专业人员已要求限制此类活动时不适用。'],evidenceSourceIds:[c.source],evidenceType:'B',evidenceReviewStatus:'source-checked-technique',traditionalCultureTags:[],animationAsset:null,isActive:true},

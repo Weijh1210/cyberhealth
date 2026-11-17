@@ -1,9 +1,11 @@
 import type { Metadata,Viewport } from 'next';
 import '../app.css';
+import '../rest.css';
+import '../garden-game.css';
 
 export const metadata: Metadata = {
   title: 'CyberHealth · 摸鱼养生局',
-  description: '适合办公间隙的微运动助手。',
+  description: '为工作与学习间隙留一点休息。',
   appleWebApp:{capable:true,statusBarStyle:'default',title:'摸鱼养生局'},
   icons:{apple:'/icons/icon-192.png'},
 };

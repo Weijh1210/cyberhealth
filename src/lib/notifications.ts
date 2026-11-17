@@ -13,7 +13,15 @@ export async function requestNotifications(){
  const capability=browserNotificationCapability();if(!capability.canRequest)return {granted:false,message:capability.message};
  try {const permission=await Notification.requestPermission();return {granted:permission==='granted',message:browserNotificationCapability().message};}catch{return {granted:false,message:'此设备无法申请系统通知，站内提醒仍可使用。'};}
 }
-export async function displayNotification() {
+export async function displayNotification(title='歇一下',body='有一项休息提醒。') {
  if(typeof Notification==='undefined'||Notification.permission!=='granted')return 'unsupported' as const;
- try {const registration=await navigator.serviceWorker?.getRegistration();if(registration)await registration.showNotification('给自己一个小间隙？',{body:'确认当前场景，挑一项方便的微活动。',tag:'cyberhealth-break'});else new Notification('给自己一个小间隙？',{body:'挑一项现在做得到的微活动。',tag:'cyberhealth-break'});return 'api-accepted' as const;}catch {return 'failed' as const;}
+ try {
+  const registration=await navigator.serviceWorker?.getRegistration();
+  if(registration)await registration.showNotification(title,{body,tag:'cyberhealth-break',data:{url:'/#rest'}});
+  else {
+   const notice=new Notification(title,{body,tag:'cyberhealth-break'});
+   notice.onclick=()=>{window.focus();window.location.hash='rest';window.dispatchEvent(new Event('cyberhealth-rest'));notice.close();};
+  }
+  return 'api-accepted' as const;
+ }catch{return 'failed' as const;}
 }

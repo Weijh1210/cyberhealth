@@ -1,4 +1,4 @@
-import App from '../components/App';
+import App from '../components/RestApp';
 
 export default function Page() {
   return <App />;

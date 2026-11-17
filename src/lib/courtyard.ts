@@ -10,6 +10,9 @@ export const cities = {
  shanghai:{name:'上海',lat:31.23,lon:121.47},
  beijing:{name:'北京',lat:39.90,lon:116.41},
  hongkong:{name:'香港',lat:22.32,lon:114.17},
+ tokyo:{name:'东京',lat:35.68,lon:139.69},
+ london:{name:'伦敦',lat:51.51,lon:-0.13},
+ vancouver:{name:'温哥华',lat:49.28,lon:-123.12},
 } as const;
 export type City = keyof typeof cities;
 export const slips = {
@@ -25,7 +28,7 @@ export type QuickBreak = keyof typeof quickBreaks;
 export type Courtyard = {
  city:City; seeds:number; plants:Partial<Record<Site,string>>; wet:Site[]; jar:number; route:Route|null;
  draws:Record<string,Draw>; leaf:'尖叶'|'宽叶'|null; peel:boolean; displayed:('leaf'|'peel')[];
- notes:{kind:QuickBreak;at:string}[]; reminders:{id:string;label:string;time:string;lastDay?:string;private?:boolean}[];
+ notes:{kind:QuickBreak;at:string}[]; reminders:{id:string;label:string;time:string;lastDay?:string;private?:boolean;enabled?:boolean}[];
 };
 export const emptyCourtyard = ():Courtyard => ({city:'hangzhou',seeds:0,plants:{},wet:[],jar:0,route:null,draws:{},leaf:null,peel:false,displayed:[],notes:[],reminders:[]});
 const inRecord = (record:object,key:unknown) => typeof key==='string'&&Object.hasOwn(record,key);
