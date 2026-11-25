@@ -1,0 +1,67 @@
+{
+  "testedAt": "2026-11-23T11:39:36.744Z",
+  "live": true,
+  "promptVersion": "4.0.0",
+  "input": "更正一下：工作日到公司的时间改为10点，其他地点和安排不变。",
+  "existing": {
+    "locations": [
+      {
+        "id": "home_fixed",
+        "name": "家",
+        "category": "home"
+      },
+      {
+        "id": "office_fixed",
+        "name": "公司",
+        "category": "office"
+      }
+    ],
+    "events": [
+      {
+        "id": "wake_fixed",
+        "locationId": "home_fixed",
+        "title": "起床",
+        "start": "07:00",
+        "end": null,
+        "recurrence": "weekday"
+      },
+      {
+        "id": "work_fixed",
+        "locationId": "office_fixed",
+        "title": "工作",
+        "start": "09:00",
+        "end": "17:30",
+        "recurrence": "weekday"
+      }
+    ]
+  },
+  "delta": {
+    "locations": [],
+    "events": [
+      {
+        "id": "work_fixed",
+        "locationId": "office_fixed",
+        "title": "工作",
+        "start": "10:00",
+        "end": "17:30",
+        "recurrence": "weekday",
+        "transport": "unknown",
+        "busy": true,
+        "evidence": "工作日到公司的时间改为10点"
+      }
+    ],
+    "questions": []
+  },
+  "inputTokens": 857,
+  "outputTokens": 68,
+  "estimatedCost": 0,
+  "provider": "dots-studio/dots-3-note-preview:free",
+  "attempts": [
+    {
+      "model": "dots-studio/dots-3-note-preview:free",
+      "status": 200,
+      "outcome": "response_received"
+    }
+  ],
+  "passed": true
+}

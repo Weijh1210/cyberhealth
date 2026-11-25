@@ -1,0 +1,189 @@
+{
+  "testedAt": "2026-11-23T11:19:57.242Z",
+  "live": true,
+  "model": "dots-studio/dots-3-note-preview:free",
+  "promptVersion": "3.2.3",
+  "paidFallback": false,
+  "modelRequestsSent": 3,
+  "earlierAttempts": [],
+  "results": [
+    {
+      "name": "中文工作日日程",
+      "passed": true,
+      "input": "工作日早上8点我在家起床，9点坐地铁去公司，12点30分在公司附近的餐厅吃午饭，下午18点下班，晚上19点回到家休息。",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-home",
+            "name": "家",
+            "category": "home",
+            "source": "ai",
+            "confirmed": false
+          },
+          {
+            "id": "loc-office",
+            "name": "公司",
+            "category": "office",
+            "source": "ai",
+            "confirmed": false
+          },
+          {
+            "id": "loc-restaurant",
+            "name": "公司附近的餐厅",
+            "category": "restaurant",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-wake-up",
+            "locationId": "loc-home",
+            "title": "起床",
+            "start": "08:00",
+            "end": null,
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "工作日早上8点我在家起床"
+          },
+          {
+            "id": "evt-commute",
+            "locationId": "loc-office",
+            "title": "坐地铁去公司",
+            "start": "09:00",
+            "end": null,
+            "recurrence": "weekday",
+            "transport": "subway",
+            "busy": true,
+            "evidence": "9点坐地铁去公司"
+          },
+          {
+            "id": "evt-lunch",
+            "locationId": "loc-restaurant",
+            "title": "吃午饭",
+            "start": "12:30",
+            "end": null,
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "12点30分在公司附近的餐厅吃午饭"
+          },
+          {
+            "id": "evt-off-work",
+            "locationId": "loc-office",
+            "title": "下班",
+            "start": "18:00",
+            "end": null,
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": true,
+            "evidence": "下午18点下班"
+          },
+          {
+            "id": "evt-return-home",
+            "locationId": "loc-home",
+            "title": "回到家休息",
+            "start": "19:00",
+            "end": null,
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "晚上19点回到家休息"
+          }
+        ],
+        "questions": [
+          "你提到的“工作日”是指周一到周五吗？",
+          "地铁通勤大约需要多长时间？",
+          "从公司到餐厅是步行还是其他方式？",
+          "下班后到家的交通方式是什么？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 415,
+      "outputTokens": 527,
+      "cost": 0,
+      "elapsedMs": 6108
+    },
+    {
+      "name": "周末公园增量",
+      "passed": true,
+      "input": "再补充一个周末场景：周末下午15点到16点我会在公园散步。其他工作日安排不变。",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-park",
+            "name": "公园",
+            "category": "park",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-park-walk",
+            "locationId": "loc-park",
+            "title": "公园散步",
+            "start": "15:00",
+            "end": "16:00",
+            "recurrence": "weekend",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "周末下午15点到16点我会在公园散步"
+          }
+        ],
+        "questions": [
+          "公园散步是每周六还是周日，还是两天都去？",
+          "去公园散步的交通方式是步行、骑车还是公共交通？",
+          "这个公园有具体名称吗？",
+          "是否需要将“散步”记录为有明确开始和结束时间的活动？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 720,
+      "outputTokens": 225,
+      "cost": 0,
+      "elapsedMs": 3778
+    },
+    {
+      "name": "未知时间不编造",
+      "passed": true,
+      "input": "我每天晚上会在家休息，没有固定的开始或结束时间。",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-home",
+            "name": "家",
+            "category": "home",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-rest",
+            "locationId": "loc-home",
+            "title": "在家休息",
+            "start": null,
+            "end": null,
+            "recurrence": "daily",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "我每天晚上会在家休息，没有固定的开始或结束时间。"
+          }
+        ],
+        "questions": [
+          "“每天晚上”具体指哪个时间段？例如是从几点到几点？",
+          "“在家休息”是否包含睡眠、看电视、阅读等具体活动？",
+          "是否每天都有这一安排，还是仅在工作日/周末？",
+          "从其他地点返回家中通常使用什么交通方式？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 387,
+      "outputTokens": 213,
+      "cost": 0,
+      "elapsedMs": 3452
+    }
+  ]
+}

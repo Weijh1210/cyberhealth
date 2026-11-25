@@ -1,0 +1,279 @@
+{
+  "testedAt": "2026-11-23T11:35:53.849Z",
+  "live": true,
+  "model": "dots-studio/dots-3-note-preview:free",
+  "promptVersion": "4.0.0",
+  "paidFallback": false,
+  "modelRequestsSent": 6,
+  "earlierAttempts": [],
+  "results": [
+    {
+      "name": "English weekday",
+      "passed": true,
+      "input": "On weekdays, I wake up at home at 7:00 and work at the office from 9:00 to 17:30.",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-home",
+            "name": "home",
+            "category": "home",
+            "source": "ai",
+            "confirmed": false
+          },
+          {
+            "id": "loc-office",
+            "name": "office",
+            "category": "office",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-wake",
+            "locationId": "loc-home",
+            "title": "wake up",
+            "start": "07:00",
+            "end": null,
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "I wake up at home at 7:00"
+          },
+          {
+            "id": "evt-work",
+            "locationId": "loc-office",
+            "title": "work",
+            "start": "09:00",
+            "end": "17:30",
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": true,
+            "evidence": "work at the office from 9:00 to 17:30"
+          }
+        ],
+        "questions": [
+          "How do you travel from home to the office?",
+          "Do you have any fixed activities before 9:00 or after 17:30 on weekdays?"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 668,
+      "outputTokens": 320,
+      "cost": 0,
+      "elapsedMs": 4373
+    },
+    {
+      "name": "大约时间",
+      "passed": true,
+      "input": "工作日我大概早上8点在家起床，具体分钟不固定。",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-home",
+            "name": "家",
+            "category": "home",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-wake-up",
+            "locationId": "loc-home",
+            "title": "起床",
+            "start": "08:00",
+            "end": null,
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "工作日我大概早上8点在家起床，具体分钟不固定。",
+            "approximate": true
+          }
+        ],
+        "questions": [
+          "您通常几点出门开始工作？",
+          "工作日是否有固定的通勤方式（如地铁、公交、步行）？",
+          "您一般在何处吃早餐？",
+          "是否需要记录午休或晚餐时间？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 651,
+      "outputTokens": 210,
+      "cost": 0,
+      "elapsedMs": 3070
+    },
+    {
+      "name": "跨夜工作",
+      "passed": true,
+      "input": "每个工作日晚上22点到第二天早上6点，我在公司值夜班。",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-office",
+            "name": "公司",
+            "category": "office",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-night-shift",
+            "locationId": "loc-office",
+            "title": "值夜班",
+            "start": "22:00",
+            "end": "06:00",
+            "recurrence": "weekday",
+            "transport": "unknown",
+            "busy": true,
+            "evidence": "每个工作日晚上22点到第二天早上6点，我在公司值夜班。",
+            "approximate": false
+          }
+        ],
+        "questions": [
+          "您是否需要在周末或节假日也值夜班？",
+          "值夜班期间是否有固定的休息或用餐时间？",
+          "从住处到公司的通勤方式和大致耗时是什么？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 655,
+      "outputTokens": 146,
+      "cost": 0,
+      "elapsedMs": 2569
+    },
+    {
+      "name": "不确定频率",
+      "passed": true,
+      "input": "我偶尔周末去公园，具体哪天没有规律，也没有固定时间。",
+      "delta": {
+        "locations": [
+          {
+            "id": "L1",
+            "name": "公园",
+            "category": "park",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "E1",
+            "locationId": "L1",
+            "title": "去公园",
+            "start": null,
+            "end": null,
+            "recurrence": "weekend",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "我偶尔周末去公园，具体哪天没有规律，也没有固定时间。",
+            "approximate": true
+          }
+        ],
+        "questions": [
+          "您通常在周末的上午、下午还是傍晚去公园？",
+          "您去公园一般是步行、骑车还是乘车？",
+          "您是否有特别偏好的公园名称或区域？",
+          "您去公园时通常会进行哪些活动（如散步、坐坐、看书等）？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 652,
+      "outputTokens": 152,
+      "cost": 0,
+      "elapsedMs": 2607
+    },
+    {
+      "name": "矛盾时间",
+      "passed": true,
+      "input": "我每天早上8点在家起床，不过也可能是9点，我还没确定。",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-home",
+            "name": "家",
+            "category": "home",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "ev-wake-up",
+            "locationId": "loc-home",
+            "title": "起床",
+            "start": null,
+            "end": null,
+            "recurrence": "daily",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "我每天早上8点在家起床，不过也可能是9点，我还没确定。",
+            "approximate": true
+          }
+        ],
+        "questions": [
+          "您通常几点起床？是8点还是9点，还是其他时间？",
+          "这个起床时间是工作日还是每天都一样？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 654,
+      "outputTokens": 124,
+      "cost": 0,
+      "elapsedMs": 2207
+    },
+    {
+      "name": "偏好与行动限制",
+      "passed": true,
+      "input": "我每天晚上在家休息。我更喜欢1分钟以内的活动，现在不方便站立，也不能走动，请只提供坐着可以做的事。",
+      "delta": {
+        "locations": [
+          {
+            "id": "loc-home",
+            "name": "家",
+            "category": "home",
+            "source": "ai",
+            "confirmed": false
+          }
+        ],
+        "events": [
+          {
+            "id": "evt-rest",
+            "locationId": "loc-home",
+            "title": "在家休息",
+            "start": null,
+            "end": null,
+            "recurrence": "daily",
+            "transport": "unknown",
+            "busy": false,
+            "evidence": "我每天晚上在家休息。"
+          }
+        ],
+        "preferences": [
+          "活动时长不超过1分钟",
+          "仅限坐着可完成的活动"
+        ],
+        "constraints": {
+          "notes": [
+            "当前不能站立",
+            "当前不能走动"
+          ],
+          "standingAllowed": false,
+          "walkingAllowed": false
+        },
+        "questions": [
+          "您通常几点开始晚上在家休息？",
+          "休息活动是否包含阅读、听音乐或使用电子设备？",
+          "是否需要在特定时间结束休息？"
+        ]
+      },
+      "model": "dots-studio/dots-3-note-preview:free",
+      "inputTokens": 665,
+      "outputTokens": 243,
+      "cost": 0,
+      "elapsedMs": 3848
+    }
+  ]
+}

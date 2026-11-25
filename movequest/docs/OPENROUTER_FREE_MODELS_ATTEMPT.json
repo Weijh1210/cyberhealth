@@ -1,0 +1,108 @@
+{
+  "testedAt": "2026-11-23T11:33:43.282Z",
+  "live": true,
+  "outcome": "no_model_passed",
+  "modelRequestsSent": 8,
+  "paidFallback": false,
+  "attempts": [
+    {
+      "model": "dots-studio/dots-3-note-preview:free",
+      "case": "大约时间",
+      "outcome": "failed",
+      "reason": "事件或时间格式不正确",
+      "status": null,
+      "passedCases": [
+        {
+          "name": "English weekday",
+          "passed": true,
+          "input": "On weekdays, I wake up at home at 7:00 and work at the office from 9:00 to 17:30.",
+          "delta": {
+            "locations": [
+              {
+                "id": "loc-home",
+                "name": "home",
+                "category": "home",
+                "source": "ai",
+                "confirmed": false
+              },
+              {
+                "id": "loc-office",
+                "name": "office",
+                "category": "office",
+                "source": "ai",
+                "confirmed": false
+              }
+            ],
+            "events": [
+              {
+                "id": "ev-wake",
+                "locationId": "loc-home",
+                "title": "wake up",
+                "start": "07:00",
+                "end": null,
+                "recurrence": "weekday",
+                "transport": "unknown",
+                "busy": false,
+                "evidence": "On weekdays, I wake up at home at 7:00"
+              },
+              {
+                "id": "ev-work",
+                "locationId": "loc-office",
+                "title": "work",
+                "start": "09:00",
+                "end": "17:30",
+                "recurrence": "weekday",
+                "transport": "unknown",
+                "busy": true,
+                "evidence": "work at the office from 9:00 to 17:30"
+              }
+            ],
+            "questions": [
+              "What is your commute method between home and office?",
+              "How do you spend the time between 7:00 and 9:00 on weekdays?",
+              "Is your work schedule fixed every weekday, or does it vary?",
+              "Do you have any recurring activities outside of work hours on weekdays?"
+            ]
+          },
+          "model": "dots-studio/dots-3-note-preview:free",
+          "inputTokens": 562,
+          "outputTokens": 238,
+          "cost": 0,
+          "elapsedMs": 3751
+        }
+      ]
+    },
+    {
+      "model": "inclusionai/ling-3.2-flash:free",
+      "case": "English weekday",
+      "outcome": "failed",
+      "reason": "免费模型限流，有限免费候选仍不可用，请稍后重试或手动填写",
+      "status": 429,
+      "passedCases": []
+    },
+    {
+      "model": "google/gemma-4-31b-it:free",
+      "case": "English weekday",
+      "outcome": "failed",
+      "reason": "免费模型限流，有限免费候选仍不可用，请稍后重试或手动填写",
+      "status": 429,
+      "passedCases": []
+    },
+    {
+      "model": "google/gemma-4-26b-a4b-it:free",
+      "case": "English weekday",
+      "outcome": "failed",
+      "reason": "免费模型限流，有限免费候选仍不可用，请稍后重试或手动填写",
+      "status": 429,
+      "passedCases": []
+    },
+    {
+      "model": "liquid/lfm-3-1.7b:free",
+      "case": "English weekday",
+      "outcome": "failed",
+      "reason": "模型返回的事件缺少原文依据，请手动核对",
+      "status": null,
+      "passedCases": []
+    }
+  ]
+}

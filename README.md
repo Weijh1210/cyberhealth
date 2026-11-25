@@ -1,5 +1,7 @@
 # CyberHealth（摸鱼养生局）
 
+> **MoveQuest V7.1 微动冒险**位于 [`movequest/`](movequest/README.md)，该目录的 README 提供个人版启动步骤。本文介绍 CyberHealth 根应用。
+
 「半日闲」是一座可以探索的山水庭园。陪小竹去亭中看远、堂前舒展、沿溪歇息，现实里的一段休息会在庭园里长出花。
 
 ## 本地运行

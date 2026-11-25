@@ -1,0 +1,28 @@
+{
+  "testedAt": "2026-11-23T11:11:39.700165+00:00",
+  "live": true,
+  "model": "baidu/ernie-5.5-flash-preview:free",
+  "endpoint": "https://openrouter.ai/api/v1/chat/completions",
+  "outcome": "rate_limited",
+  "httpStatus": 429,
+  "casesPassed": 0,
+  "casesPlanned": 3,
+  "modelRequestsSent": 1,
+  "jsonReturned": false,
+  "paidFallback": false,
+  "priceCeiling": {
+    "prompt": 0,
+    "completion": 0,
+    "request": 0
+  },
+  "authenticationReadCheck": {
+    "httpStatus": 200,
+    "freeTier": true
+  },
+  "notes": [
+    "官方端点零价格预检查通过。",
+    "第一组真实中文提取请求收到 HTTP 429，停止后续两组。",
+    "只读 Key 检查成功；不能由此区分账户免费配额限制与模型上游容量限制。",
+    "未生成成功结果文件；未输出或保存 API Key。"
+  ]
+}
