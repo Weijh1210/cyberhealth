@@ -1,4 +1,10 @@
-import type { Category, LifeEvent } from "../life/model";
+import {
+  categoryNames,
+  type Category,
+  type LifeEvent,
+  type LifeLocation,
+} from "../life/model";
+import type { Locale } from "../domain/types";
 import type { Cue, ContextFact } from "../life/context";
 
 export const englishCategories: Record<Category, string> = {
@@ -15,6 +21,15 @@ export const englishCategories: Record<Category, string> = {
   gym: "Sports venue",
   other: "Other",
 };
+export function placeName(location: LifeLocation | undefined, locale: Locale) {
+  if (!location) return "";
+  return locale === "en" &&
+    location.source === "manual" &&
+    location.name === categoryNames[location.category]
+    ? englishCategories[location.category]
+    : location.name;
+}
+
 export const englishTravel: Record<LifeEvent["transport"], string> = {
   unknown: "Not specified",
   walk: "On foot",

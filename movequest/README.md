@@ -53,7 +53,7 @@ npm run serve
 
 当前接入 OpenRouter，默认使用已实测的 `dots-studio/dots-3-note-preview:free`，仅允许明确的免费白名单内有限切换，价格上限为 0。未配置后端 `OPENROUTER_API_KEY` 时不假装运行 AI，手动资料、地图、推荐、反馈、装饰与统计继续可用。`npm run dev` 将 `/api` 代理到 5176；开发时另开终端 `npm run api`。静态 preview 不提供模型 API。
 
-生产需要单进程 Node、HTTPS、私有持久卷及 Cookie secret。当前不是无状态 serverless 架构，不要把服务端 `server/data` 发布为静态资源。意向接口真实保存邮箱与同意版本，没有支付能力。服务端意向删除流程尚需部署方补齐。
+独立 Node 部署需要 HTTPS、私有持久卷及 Cookie secret。Vercel 使用下面的 Functions 和私有 Blob。意向接口保存用户同意后提交的邮箱与同意版本，没有支付能力。
 
 真实 API 验收（需要先在本机 `.env` 填写 Key）：
 
@@ -159,16 +159,14 @@ src/
 
 数据键为 `movequest:v1`。未知版本或损坏数据不会静默覆盖，可以进入偏好页导出原始内容后处理。当前是新应用首版，没有从旧 CyberHealth 数据导入，也没有导入 JSON 或云同步功能。写入失败时保留原数据并显示错误，不能把未保存状态视为已完成。
 
-## 部署准备（未发布）
+## 部署
 
-只用离线/手动功能时可静态托管；AI 提取及服务端意向登记需要运行下面的 Node API。将构建根目录设置为 `movequest`，安装 `npm ci`，构建 `npm run build`，输出 `dist`。
+Vercel 项目以 `movequest` 为构建根目录，执行 `npm ci` 和 `npm run build`，输出 `dist`。前端使用域名根路径。配置保留 PWA 静态资源与 SPA 深链，并将 `/api/*` 交给 Functions。
 
-- **Netlify**：`public/_redirects` 随构建复制到产物，支持 SPA 深链。
-- **Vercel**：提供 `vercel.json`，包含深链回退与 service worker 的 no-cache 响应头。
-- **其他托管**：将没有对应静态文件的页面请求回退到 `index.html`；不要将 JS/CSS/图标请求回退为 HTML。
-- 当前 `base`、manifest scope、start_url 和路由均按**独立域名根路径**配置。子路径部署需统一调整这些设置，不是直接拖入旧应用子目录。
-- 建议独立域名/子域名，避免已有根应用 service worker 控制 MoveQuest。不要为此清理用户的旧应用数据或 service worker。
-- 发布后检查 `/explore`、`/quest/campus-corridor`、离线重载、图标、manifest、更新提示。此项目尚未部署到生产。
+- 在 Production 环境设置服务端 Secrets `OPENROUTER_API_KEY` 和高熵的 `MOVEQUEST_COOKIE_SECRET`，并连接私有 Vercel Blob 存储。
+- `/api/status` 报告 AI 配置是否完整，`/api/life/extract` 通过现有 OpenRouter 免费模型策略处理描述。公开入口采用持久限流，超过额度时仍可在浏览器本机整理。
+- `/api/interest` 保存用户显式同意的邮箱登记和同意版本。限额记录与登记保存在私有存储，AI 描述和活动记录均不写入 Blob。
+- 纯静态托管支持本机发现、动作训练、城镇和习惯。需要实时 AI 或邮件意向登记时，也可以单独运行 `npm run serve` 的 Node API。
 
 ## 已实现与限制
 

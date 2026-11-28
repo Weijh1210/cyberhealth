@@ -1,9 +1,12 @@
+import { placeName } from "../i18n/lifeLabels";
+import { questTitle } from "../i18n/productContent";
 import { useLanguage } from "../i18n/language";
 import { useRef, useState } from "react";
 import { ArrowRight, MapPin, Sprout } from "lucide-react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useSearchParams } from "react-router-dom";
 import { activeLife } from "../life/model";
-import { discoveryFor, discover } from "../life/discoveries";
+import { availableDiscoveries } from "../life/discoveries";
+import type { RoutineChanges } from "../life/routineChanges";
 import { englishGrowth, growthTitles, worldGrowth } from "../life/worldGrowth";
 import { categoryScene, moveLibrary } from "../life/moveNow";
 import { findQuest } from "../data/content";
@@ -12,9 +15,12 @@ import { useStore } from "../state/Store";
 import { LifeWorld } from "./LifeWorld";
 
 export function PersonalTown() {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const { state, send } = useStore();
   const [params] = useSearchParams();
+  const { state: navigation } = useLocation() as {
+    state: { routineChanges?: RoutineChanges } | null;
+  };
   const life = activeLife(state);
   const [selection, setSelection] = useState<string>();
   const [showcase, setShowcase] = useState<string>();
@@ -22,7 +28,27 @@ export function PersonalTown() {
   const current = selection ?? params.get("expanded") ?? params.get("scene");
   const selected = life.locations.find((l) => l.id === current);
   const progress = worldGrowth(life);
-  const plans = discover(life, Date.now());
+  const plans = availableDiscoveries(life, Date.now());
+  const changes = navigation?.routineChanges;
+  const added = new Set(changes?.added);
+  const updated = new Set(changes?.updated);
+  const addedCount = plans.filter((plan) => added.has(plan.cue.id)).length;
+  const updatedCount = plans.filter((plan) => updated.has(plan.cue.id)).length;
+  const districtOpportunities = new Map<
+    string,
+    { total: number; changed: boolean }
+  >();
+  for (const plan of plans) {
+    const id = plan.location.id;
+    const previous = districtOpportunities.get(id);
+    districtOpportunities.set(id, {
+      total: (previous?.total ?? 0) + 1,
+      changed:
+        !!previous?.changed ||
+        added.has(plan.cue.id) ||
+        updated.has(plan.cue.id),
+    });
+  }
   const sceneMoves = selected
     ? moveLibrary.filter((move) => {
         const quest = findQuest(move.id);
@@ -33,15 +59,9 @@ export function PersonalTown() {
         );
       })
     : [];
-  const districtPlans = selected
-    ? (life.cues ?? [])
-        .flatMap((cue) => {
-          const plan =
-            cue.locationId === selected.id && discoveryFor(life, cue);
-          return plan ? [plan] : [];
-        })
-        .slice(0, 3)
-    : [];
+  const districtPlans = plans.filter(
+    (plan) => plan.location.id === selected?.id,
+  );
   const categoryPriority =
     selected?.category === "home"
       ? ["household", "mobility", "strength", "aerobic"]
@@ -79,14 +99,8 @@ export function PersonalTown() {
                 )}
           </p>
         </div>
-        <Link
-          className="button primary"
-          to={plans.length ? "/explore" : "/life"}
-        >
-          {plans.length
-            ? t("继续我的计划", "My action plan")
-            : t("补充日常", "Add a routine")}{" "}
-          <ArrowRight size={17} />
+        <Link className="button primary" to="/explore">
+          {t("我的行动计划", "My action plan")} <ArrowRight size={17} />
         </Link>
       </header>
       {newlyExpanded && (
@@ -94,11 +108,40 @@ export function PersonalTown() {
           <Sprout size={19} />{" "}
           <span>
             {t(
-              `新街区已解锁 · ${newlyExpanded.name}`,
-              `District unlocked · ${newlyExpanded.name}`,
+              `新街区已解锁 · ${placeName(newlyExpanded, locale)}`,
+              `District unlocked · ${placeName(newlyExpanded, locale)}`,
             )}
           </span>
         </div>
+      )}
+      {changes && (
+        <p className="town-plan-update" role="status">
+          <Sprout size={18} aria-hidden="true" />
+          <span>
+            <strong>
+              {t(
+                `新增 ${addedCount} 个运动机会`,
+                `${addedCount} new movement ${addedCount === 1 ? "opportunity" : "opportunities"}`,
+              )}
+              {updatedCount > 0 &&
+                t(` · 更新 ${updatedCount} 个`, ` · ${updatedCount} updated`)}
+            </strong>
+            {addedCount + updatedCount > 0 &&
+              t(
+                "。金色数字表示该地点有新增或更新的推荐。",
+                ". Gold numbers flag places with new or updated recommendations.",
+              )}
+          </span>
+        </p>
+      )}
+      {!plans.length && life.locations.length > 0 && (
+        <p className="town-map-caption">
+          {t(
+            "暂时没有匹配的运动机会。",
+            "There are no matching movement opportunities yet.",
+          )}{" "}
+          <Link to="/life">{t("补充日常", "Add a routine")}</Link>
+        </p>
       )}
       {life.locations.length > 0 && (
         <p className="fineprint">
@@ -112,15 +155,12 @@ export function PersonalTown() {
         life={life}
         opportunities={[]}
         frameToDistricts
-        discoveryLocations={life.locations
-          .filter((l) => l.confirmed)
-          .map((l) => l.id)}
-        onMovementSelect={openMovements}
+        districtOpportunities={districtOpportunities}
         selected={selected?.id ?? ""}
         focusId={
           showcase ?? (life.nodes.length > 3 ? newlyExpanded?.id : undefined)
         }
-        onSelect={(id) => setSelection(id)}
+        onSelect={openMovements}
         onExplore={(id) => {
           void send({ type: "district-visit", id });
           void send({
@@ -151,7 +191,7 @@ export function PersonalTown() {
                 void send({ type: "district-visit", id: l.id });
               }}
             >
-              {l.name} <ArrowRight size={14} />
+              {placeName(l, locale)} <ArrowRight size={14} />
             </button>
           ))}
         </section>
@@ -166,7 +206,7 @@ export function PersonalTown() {
             <p className="discovery-context">
               <MapPin size={16} /> {t("当前街区", "Current district")}
             </p>
-            <h2>{selected.name}</h2>
+            <h2>{placeName(selected, locale)}</h2>
             <p>
               {upgrade
                 ? t(
@@ -193,17 +233,40 @@ export function PersonalTown() {
           {(districtPlans.length > 0 || choices.length > 0) && (
             <div className="town-movement-list">
               <h3>{t("这里可以做的活动", "Movement for this district")}</h3>
+              {districtPlans.length > 0 && (
+                <>
+                  <h4>
+                    {t("来自日常的推荐", "Recommendations from your routine")}
+                  </h4>
+                  <ul className="today-recent">
+                    {districtPlans.map((plan) => (
+                      <li key={plan.cue.id}>
+                        <div>
+                          <Link
+                            to={`/move/${plan.quest.id}?cue=${encodeURIComponent(plan.cue.id)}`}
+                          >
+                            {questTitle(plan.quest, locale)}
+                          </Link>
+                          <p className="fineprint">{plan.cue.evidence}</p>
+                        </div>
+                        {added.has(plan.cue.id) ? (
+                          <strong className="town-plan-change">
+                            {t("新增", "New")}
+                          </strong>
+                        ) : updated.has(plan.cue.id) ? (
+                          <strong className="town-plan-change">
+                            {t("已更新", "Updated")}
+                          </strong>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
+              {choices.length > 0 && (
+                <h4>{t("动作库备选", "More from the movement library")}</h4>
+              )}
               <ul className="today-recent">
-                {districtPlans.map((plan) => (
-                  <li key={plan.cue.id}>
-                    <Link
-                      to={`/move/${plan.quest.id}?cue=${encodeURIComponent(plan.cue.id)}`}
-                    >
-                      {plan.quest.title}
-                    </Link>
-                    <span>{plan.cue.evidence}</span>
-                  </li>
-                ))}
                 {choices.map((move) => (
                   <li key={move.id}>
                     <Link
@@ -225,8 +288,8 @@ export function PersonalTown() {
           <p className="town-map-caption">
             <Sprout size={17} />{" "}
             {t(
-              "点一栋建筑，查看街区变化和装饰。",
-              "Select a building to see its upgrades and decorations.",
+              "点一栋建筑，查看可用推荐、街区变化和装饰。",
+              "Select a building to see available recommendations, upgrades and decorations.",
             )}
           </p>
         )

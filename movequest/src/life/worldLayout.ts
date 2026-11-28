@@ -1,4 +1,4 @@
-import type { Category, WorldNode } from "./model";
+import type { Category, WorldNode } from "./model.js";
 export const districtFor = (category: Category) =>
   ({
     home: "住宅区",

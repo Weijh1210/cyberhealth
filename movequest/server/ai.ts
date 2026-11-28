@@ -1,19 +1,19 @@
-import { avoidArms, avoidLegs } from "../src/life/immediate";
-import { validPlan, type Cue } from "../src/life/context";
-import { approvedPlan } from "../src/life/discoveries";
-import type { Category } from "../src/life/model";
+import { avoidArms, avoidLegs } from "../src/life/immediate.js";
+import { validPlan, type Cue } from "../src/life/context.js";
+import { approvedPlan } from "../src/life/discoveries.js";
+import type { Category } from "../src/life/model.js";
 import {
   aiConfiguration,
   AI_TIMEOUT_MS,
   FREE_PROVIDER_POLICY,
   OPENROUTER_URL,
-} from "./aiConfig";
+} from "./aiConfig.js";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
-import { validateDelta, type LifeDelta } from "../src/life/model";
+import { validateDelta, type LifeDelta } from "../src/life/model.js";
 export type ExtractInput = {
   text: string;
-  replyLanguage?: "en";
+  replyLanguage?: "en" | "zh-CN";
   latestMessage?: string;
   clarifications?: { question: string; answer: string }[];
   existing: {
@@ -134,7 +134,9 @@ export function inputFor(value: unknown): ExtractInput {
           "replyLanguage",
         ].includes(k),
     ) ||
-    (v.replyLanguage !== undefined && v.replyLanguage !== "en") ||
+    (v.replyLanguage !== undefined &&
+      v.replyLanguage !== "en" &&
+      v.replyLanguage !== "zh-CN") ||
     typeof v.text !== "string" ||
     !v.text.trim() ||
     v.text.length > 4000
@@ -190,7 +192,9 @@ export function inputFor(value: unknown): ExtractInput {
     throw Error("对话上下文无效");
   return {
     text: v.text,
-    ...(v.replyLanguage === "en" ? { replyLanguage: "en" as const } : {}),
+    ...(v.replyLanguage === "en" || v.replyLanguage === "zh-CN"
+      ? { replyLanguage: v.replyLanguage }
+      : {}),
     ...(latestMessage ? { latestMessage } : {}),
     existing: {
       locations,
@@ -292,7 +296,9 @@ export async function extract(
                 update +
                 (input.replyLanguage === "en"
                   ? "\nUse English for questions and new event titles. Keep place names as written by the user. All evidence must stay verbatim in the original language."
-                  : ""),
+                  : input.replyLanguage === "zh-CN"
+                    ? "\nUse Simplified Chinese for questions and new event titles. Keep place names as written by the user and quote all evidence verbatim."
+                    : ""),
             },
             { role: "user", content: JSON.stringify(input) },
           ],

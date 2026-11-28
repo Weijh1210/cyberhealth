@@ -1,5 +1,6 @@
 import { englishPlan, englishSkip } from "../life/planEnglish";
 import { englishCues } from "../i18n/lifeLabels";
+import { productText, questTitle } from "../i18n/productContent";
 import { useLanguage } from "../i18n/language";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
@@ -60,15 +61,42 @@ function HabitCard({ habit, life }: { habit: Habit; life: LifeState }) {
   const adaptation =
     latest?.status === "skipped" && latest.reason
       ? {
-          busy: "等手头这件事真的结束，有余裕再试。",
-          forgot: "把这个时机和一个看得见的线索连起来，比如关上书本。",
-          timing: "换到下一次任务自然收尾时再试。",
-          too_tiring: "可以只走几步，或先跳过，按舒适程度来。",
-          social: "可以等到了自己觉得自在的地方再试。",
-          repetitive: "可先暂停这个计划，再从今日发现挑一个不同的时机。",
-          inconvenient: "先确认路段或空间是否适合，条件不便就跳过。",
-          uninterested: "可以归档这个习惯，保留尝试记录。",
-          other: "下次可以用同一个时机再试，或者先停一停。",
+          busy: t(
+            "等手头这件事真的结束，有余裕再试。",
+            "Wait until the task is finished and you have a moment.",
+          ),
+          forgot: t(
+            "把这个时机和一个看得见的线索连起来，比如关上书本。",
+            "Link this moment to a visible cue, such as closing a book.",
+          ),
+          timing: t(
+            "换到下一次任务自然收尾时再试。",
+            "Try again when the next task naturally ends.",
+          ),
+          too_tiring: t(
+            "可以只走几步，或先跳过，按舒适程度来。",
+            "Walk only a few steps or skip it if that feels better.",
+          ),
+          social: t(
+            "可以等到了自己觉得自在的地方再试。",
+            "Try it in a place where you feel comfortable.",
+          ),
+          repetitive: t(
+            "可先暂停这个计划，再从今日发现挑一个不同的时机。",
+            "Pause this habit and choose a different cue from your action plan.",
+          ),
+          inconvenient: t(
+            "先确认路段或空间是否适合，条件不便就跳过。",
+            "Check the route or space first. Skip if conditions do not suit the activity.",
+          ),
+          uninterested: t(
+            "可以归档这个习惯，保留尝试记录。",
+            "Archive this habit to keep its history.",
+          ),
+          other: t(
+            "下次可以用同一个时机再试，或者先停一停。",
+            "Try the same cue next time or pause for now.",
+          ),
         }[latest.reason]
       : undefined;
   const canRecord =
@@ -87,22 +115,23 @@ function HabitCard({ habit, life }: { habit: Habit; life: LifeState }) {
       </p>
       <h2>
         {translated?.title ??
-          opportunity?.quest.title ??
+          (opportunity && questTitle(opportunity.quest, locale)) ??
           t("已保存的微动习惯", "Saved movement habit")}
       </h2>
       {opportunity && (
         <>
           <p>
             <strong>{t("当我", "When I")}</strong>{" "}
-            {opportunity.cue.evidence ||
+            {productText(opportunity.cue.evidence, locale) ||
               t(opportunity.trigger, englishCues[opportunity.cue.kind])}
-            ，<strong>{t("我可以", "I can")}</strong>
+            {t("，", ", ")}
+            <strong>{t("我可以", "I can")}</strong>
             {t("试一段短活动。", "try a short activity.")}
           </p>
-          <p>{translated?.action ?? opportunity.action}</p>
+          <p>{translated?.action ?? productText(opportunity.action, locale)}</p>
           <p className="fineprint">
             {t("最小动作", "Smallest version")} ·{" "}
-            {translated?.minimum ?? opportunity.minimum}
+            {translated?.minimum ?? productText(opportunity.minimum, locale)}
           </p>
           {!state.demo && (
             <div className="action-row">
@@ -117,7 +146,7 @@ function HabitCard({ habit, life }: { habit: Habit; life: LifeState }) {
                   to={`/move/${alternative.quest.id}?cue=${encodeURIComponent(habit.cueId)}&habit=${encodeURIComponent(habit.id)}&alternative=1`}
                 >
                   {t("换个动作", "Try the alternative")} ·{" "}
-                  {alternative.quest.title}
+                  {questTitle(alternative.quest, locale)}
                 </Link>
               )}
             </div>
@@ -142,14 +171,22 @@ function HabitCard({ habit, life }: { habit: Habit; life: LifeState }) {
       {initiated > 1 &&
         ((state.profile?.reminder ?? 0) > 0 ? (
           <p>
-            你已经多次主动想起来。
+            {t(
+              "你已经多次主动想起来。",
+              "You have remembered this activity on your own several times.",
+            )}
             <Link to="/profile">
               {t("可以调低提醒频率", "Lower reminder frequency")}
             </Link>
             。
           </p>
         ) : (
-          <p>你已经多次主动想起来，继续按自己的节奏就好。</p>
+          <p>
+            {t(
+              "你已经多次主动想起来，继续按自己的节奏就好。",
+              "You have remembered it on your own several times. Keep going at your own pace.",
+            )}
+          </p>
         ))}
       {canRecord &&
         (recording ? (
@@ -185,11 +222,18 @@ function HabitCard({ habit, life }: { habit: Habit; life: LifeState }) {
               {Date.now() < end
                 ? t("进行中", "In progress")
                 : t("本轮结束", "Finished")}{" "}
-              · {experiment.days} 天 · {inExperiment.length} 次记录
+              ·{" "}
+              {t(
+                `${experiment.days} 天 · ${inExperiment.length} 次记录`,
+                `${experiment.days} days · ${inExperiment.length} attempts`,
+              )}
             </p>
             <p>
               {reported
-                ? `${reported} 次已评价，其中 ${easy} 次觉得容易。`
+                ? t(
+                    `${reported} 次已评价，其中 ${easy} 次觉得容易。`,
+                    `${reported} rated, ${easy} marked easy.`,
+                  )
                 : t("还没有足够的便利度记录。", "No ease ratings yet.")}
             </p>
           </>
@@ -314,7 +358,12 @@ export function HabitGarden() {
             life.cues?.some((c) => c.id === h.cueId && c.source === "example"),
         ) && (
           <div className="notice">
-            <span>可查看独立演示中的模拟后续记录。</span>
+            <span>
+              {t(
+                "可查看独立演示中的模拟后续记录。",
+                "Explore simulated follow-up records in the separate demo.",
+              )}
+            </span>
             <button
               className="button"
               disabled={
@@ -325,7 +374,7 @@ export function HabitGarden() {
                 void send({ type: "demo-habit-history", at: Date.now() })
               }
             >
-              加载模拟习惯记录
+              {t("加载模拟习惯记录", "Load sample habit records")}
             </button>
           </div>
         )}

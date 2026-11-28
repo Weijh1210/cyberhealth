@@ -35,7 +35,46 @@ export function VoiceInput({
   const [listening, setListening] = useState(false);
   const [languageChoice, setLanguage] = useState<string>();
   const language = languageChoice ?? (locale === "en" ? "en-US" : "zh-CN");
-  const [status, setStatus] = useState("");
+  const [status, setStatus] = useState<
+    | ""
+    | "listening"
+    | "permission"
+    | "disconnected"
+    | "silence"
+    | "reconnecting"
+    | "startFailed"
+    | "stopped"
+  >("");
+  const statusText = {
+    listening: t(
+      "正在听。可以停顿，讲完再点「结束语音」。",
+      "Listening. Pause as needed and select Stop dictation when you’re done.",
+    ),
+    permission: t(
+      "浏览器没有允许麦克风。可以修改权限或继续打字。",
+      "Microphone access is blocked. Check browser permissions or continue typing.",
+    ),
+    disconnected: t(
+      "语音服务已断开。已识别的文字还在，可以重新开启语音。",
+      "Dictation ended. Your text is saved in the field. You can start again.",
+    ),
+    silence: t(
+      "一段时间没有听到声音，已暂停。点「语音转文字」可以接着说。",
+      "Dictation paused after a period of silence. Select Dictate to continue.",
+    ),
+    reconnecting: t(
+      "正在接续语音，已识别的文字会保留。",
+      "Reconnecting dictation. Your text stays in the field.",
+    ),
+    startFailed: t(
+      "无法启动语音。已识别的文字还在，可以继续打字。",
+      "Could not start dictation. Your text is still in the field.",
+    ),
+    stopped: t(
+      "已结束语音。检查文字后再发送。",
+      "Dictation stopped. Review the text before sending.",
+    ),
+  };
   const Constructor =
     (window as SpeechWindow).SpeechRecognition ??
     (window as SpeechWindow).webkitSpeechRecognition;
@@ -92,13 +131,7 @@ export function VoiceInput({
             4000,
           ),
         );
-        if (active.current)
-          setStatus(
-            t(
-              "正在听。可以停顿，讲完再点「结束语音」。",
-              "Listening. Pause as needed and select Stop dictation when you’re done.",
-            ),
-          );
+        if (active.current) setStatus("listening");
       };
       recognition.onerror = ({ error }) => {
         if (speech.current !== recognition || error === "no-speech") return;
@@ -107,11 +140,8 @@ export function VoiceInput({
         setListening(false);
         setStatus(
           error === "not-allowed" || error === "service-not-allowed"
-            ? "浏览器没有允许麦克风。可以修改权限或继续打字。"
-            : t(
-                "语音服务已断开。已识别的文字还在，可以重新开启语音。",
-                "Dictation ended. Your text is saved in the field. You can start again.",
-              ),
+            ? "permission"
+            : "disconnected",
         );
       };
       recognition.onend = () => {
@@ -121,17 +151,10 @@ export function VoiceInput({
         if (++emptyEnds > 3) {
           active.current = false;
           setListening(false);
-          setStatus(
-            "一段时间没有听到声音，已暂停。点「语音转文字」可以接着说。",
-          );
+          setStatus("silence");
           return;
         }
-        setStatus(
-          t(
-            "正在接续语音，已识别的文字会保留。",
-            "Reconnecting dictation. Your text stays in the field.",
-          ),
-        );
+        setStatus("reconnecting");
         restart.current = window.setTimeout(connect, 350);
       };
       try {
@@ -140,15 +163,10 @@ export function VoiceInput({
         active.current = false;
         speech.current = null;
         setListening(false);
-        setStatus("无法启动语音。已识别的文字还在，可以继续打字。");
+        setStatus("startFailed");
       }
     }
-    setStatus(
-      t(
-        "正在听。可以停顿，讲完再点「结束语音」。",
-        "Listening. Pause as needed and select Stop dictation when you’re done.",
-      ),
-    );
+    setStatus("listening");
     connect();
   }
 
@@ -157,12 +175,7 @@ export function VoiceInput({
     window.clearTimeout(restart.current);
     speech.current?.stop();
     setListening(false);
-    setStatus(
-      t(
-        "已结束语音。检查文字后再发送。",
-        "Dictation stopped. Review the text before sending.",
-      ),
-    );
+    setStatus("stopped");
   }
 
   return (
@@ -175,7 +188,7 @@ export function VoiceInput({
           onChange={(e) => setLanguage(e.target.value)}
         >
           <option value="zh-CN">{t("普通话", "Mandarin")}</option>
-          <option value="en-US">English</option>
+          <option value="en-US">{t("英语", "English")}</option>
         </select>
         <button
           className="button"
@@ -199,7 +212,7 @@ export function VoiceInput({
               "This browser does not support dictation. You can still type.",
             )}
       </p>
-      {status && <p role="status">{status}</p>}
+      {status && <p role="status">{statusText[status]}</p>}
     </div>
   );
 }

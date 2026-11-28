@@ -1,4 +1,4 @@
-import type { Move } from "../life/moveNow";
+import type { Move } from "../life/moveNow.js";
 
 const nhs = "https://www.nhs.uk/live-well/exercise/";
 const sitting = nhs + "sitting-exercises/";

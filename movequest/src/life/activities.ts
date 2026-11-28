@@ -1,7 +1,7 @@
-import { findMove } from "./moveNow";
-import type { LifeState } from "./model";
-import { extraEntries } from "../data/extraActivities";
-import type { Quest } from "../domain/types";
+import { findMove } from "./moveNow.js";
+import type { LifeState } from "./model.js";
+import { extraEntries } from "../data/extraActivities.js";
+import type { Quest } from "../domain/types.js";
 export type ActivityPolicy = {
   subtype: string;
   triggers: string[];

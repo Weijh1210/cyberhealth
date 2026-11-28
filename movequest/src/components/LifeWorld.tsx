@@ -1,3 +1,5 @@
+import { placeName } from "../i18n/lifeLabels";
+import { productText, questTitle } from "../i18n/productContent";
 import { useLanguage } from "../i18n/language";
 import {
   earnedDecorations,
@@ -172,6 +174,7 @@ function Building({
   category: Category;
   variant: number;
 }) {
+  const { t } = useLanguage();
   if (category === "park")
     return (
       <g>
@@ -329,7 +332,7 @@ function Building({
           fontWeight="700"
           fill="#2c514a"
         >
-          LIBRARY
+          {t("图书馆", "LIBRARY")}
         </text>
         <WorldDecoration kind="planter" x={-29} y={31} />
         <WorldDecoration kind="planter" x={30} y={37} />
@@ -414,7 +417,7 @@ function Building({
           fontWeight="700"
           textAnchor="middle"
         >
-          ACADEMY
+          {t("学校", "ACADEMY")}
         </text>
         <Tree x={-74} y={12} scale={0.55} />
         <Tree x={65} y={34} scale={0.55} />
@@ -461,7 +464,7 @@ function Building({
           fontWeight="700"
           fontSize="12"
         >
-          {category === "subway" ? "METRO" : "BUS"}
+          {category === "subway" ? t("地铁", "METRO") : t("公交", "BUS")}
         </text>
         <Bench x={-38} y={16} />
       </g>
@@ -652,14 +655,14 @@ function Building({
             fontWeight="700"
           >
             {category === "cafe"
-              ? "CAFÉ"
+              ? t("咖啡馆", "CAFÉ")
               : category === "restaurant"
-                ? "KITCHEN"
+                ? t("餐厅", "KITCHEN")
                 : category === "shop"
-                  ? "MARKET"
+                  ? t("商店", "MARKET")
                   : category === "gym"
-                    ? "STUDIO"
-                    : "LIFE"}
+                    ? t("运动场", "STUDIO")
+                    : t("生活", "LIFE")}
           </text>
         </g>
       )}
@@ -793,7 +796,7 @@ export function LifeWorld({
   life,
   opportunities,
   discoveryLocations = [],
-  onMovementSelect,
+  districtOpportunities,
   onSelect,
   onExplore,
   frameToDistricts = false,
@@ -803,7 +806,10 @@ export function LifeWorld({
   life: LifeState;
   opportunities: Opportunity[];
   discoveryLocations?: string[];
-  onMovementSelect?: (id: string) => void;
+  districtOpportunities?: ReadonlyMap<
+    string,
+    { total: number; changed: boolean }
+  >;
   onSelect: (id: string) => void;
   onExplore?: (id: string) => void;
   frameToDistricts?: boolean;
@@ -850,23 +856,43 @@ export function LifeWorld({
     scale: number;
   } | null>(null);
   const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const ground = life.nodes.length
+    ? {
+        x: Math.min(...life.nodes.map((node) => node.x)) - 100,
+        z: Math.min(...life.nodes.map((node) => node.z)) - 100,
+        right: Math.max(...life.nodes.map((node) => node.x)) + 100,
+        back: Math.max(...life.nodes.map((node) => node.z)) + 100,
+      }
+    : undefined;
+  const groundCorners = ground
+    ? [
+        p(ground.x, ground.z, -8),
+        p(ground.right, ground.z, -20),
+        p(ground.x, ground.back, -20),
+        p(ground.right, ground.back, -20),
+      ]
+    : [];
   const projected = life.nodes.map((n) => p(n.x, n.z));
   const fit = frameToDistricts && projected.length > 0;
   const minX = Math.min(
     fit ? Infinity : -210,
     ...projected.map((v) => v[0] - 173),
+    ...groundCorners.map(([x]) => x - 32),
   );
   const maxX = Math.max(
     fit ? -Infinity : 210,
     ...projected.map((v) => v[0] + 173),
+    ...groundCorners.map(([x]) => x + 32),
   );
   const minY = Math.min(
     fit ? Infinity : -190,
     ...projected.map((v) => v[1] - 216),
+    ...groundCorners.map(([, y]) => y - 32),
   );
   const maxY = Math.max(
     fit ? -Infinity : 160,
     ...projected.map((v) => v[1] + 129),
+    ...groundCorners.map(([, y]) => y + 44),
   );
   const width = maxX - minX,
     height = maxY - minY;
@@ -1124,21 +1150,13 @@ export function LifeWorld({
             ref={mapLayer}
             transform={`translate(${view.x + center[0]} ${view.y + center[1]}) scale(${view.scale}) translate(${-center[0]} ${-center[1]})`}
           >
-            {life.nodes.length > 0 && (
+            {ground && (
               <g>
                 <Box
-                  x={Math.min(...life.nodes.map((n) => n.x)) - 100}
-                  z={Math.min(...life.nodes.map((n) => n.z)) - 100}
-                  w={
-                    Math.max(...life.nodes.map((n) => n.x)) -
-                    Math.min(...life.nodes.map((n) => n.x)) +
-                    200
-                  }
-                  d={
-                    Math.max(...life.nodes.map((n) => n.z)) -
-                    Math.min(...life.nodes.map((n) => n.z)) +
-                    200
-                  }
+                  x={ground.x}
+                  z={ground.z}
+                  w={ground.right - ground.x}
+                  d={ground.back - ground.z}
                   h={12}
                   y={-20}
                   colors={["url(#town-grass)", "#8ca881", "#617f65"]}
@@ -1246,20 +1264,42 @@ export function LifeWorld({
               const newLink = life.unvisitedDistricts?.some(
                 (id) => id === edge.from || id === edge.to,
               );
+              const from = placeName(
+                life.locations.find((l) => l.id === edge.from),
+                locale,
+              );
+              const to = placeName(
+                life.locations.find((l) => l.id === edge.to),
+                locale,
+              );
+              const decorative =
+                edge.kind === "decorative" ||
+                (!edge.kind && edge.mode === "unknown");
+              const kind = decorative
+                ? t("景观连接", "Decorative path")
+                : t("日常路线", "Routine route");
               return (
                 <g
                   key={edge.id}
                   data-interactive="true"
                   role="button"
                   tabIndex={0}
-                  aria-label={`${life.locations.find((l) => l.id === edge.from)?.name}到${life.locations.find((l) => l.id === edge.to)?.name}的${edge.kind === "decorative" || (!edge.kind && edge.mode === "unknown") ? "景观连接" : "日常路线"}`}
+                  aria-label={t(
+                    `${from}到${to}的${kind}`,
+                    `${kind} from ${from} to ${to}`,
+                  )}
                   onClick={() => {
                     select(edge.to);
                     setMessage(
-                      edge.kind === "decorative" ||
-                        (!edge.kind && edge.mode === "unknown")
-                        ? "景观步道，不代表真实出行距离。"
-                        : "来自已确认生活事件的连接，不代表真实距离。",
+                      decorative
+                        ? t(
+                            "景观步道，不代表真实出行距离。",
+                            "Decorative path. It does not represent actual travel distance.",
+                          )
+                        : t(
+                            "来自已确认生活事件的连接，不代表真实距离。",
+                            "Connection from confirmed events. It does not represent actual travel distance.",
+                          ),
                     );
                   }}
                   onKeyDown={(e) => {
@@ -1330,6 +1370,7 @@ export function LifeWorld({
               const opportunity = opportunities.find(
                 (o) => o.location.id === n.id,
               );
+              const districtPlan = districtOpportunities?.get(n.id);
               const level = growth.get(n.id)?.level ?? 0;
               return (
                 <g
@@ -1348,8 +1389,8 @@ export function LifeWorld({
                     role="button"
                     tabIndex={0}
                     aria-label={t(
-                      `选择${location.name}`,
-                      `Select ${location.name}`,
+                      `选择${placeName(location, locale)}`,
+                      `Select ${placeName(location, locale)}`,
                     )}
                     aria-pressed={selected === n.id}
                     onClick={() => select(n.id)}
@@ -1411,7 +1452,7 @@ export function LifeWorld({
                         {location.name.length > (locale === "en" ? 13 : 7)
                           ? location.name.slice(0, locale === "en" ? 13 : 7) +
                             "…"
-                          : location.name}
+                          : placeName(location, locale)}
                       </text>
                     </g>
                   </g>
@@ -1421,8 +1462,8 @@ export function LifeWorld({
                       data-growth={n.id}
                       role="img"
                       aria-label={t(
-                        `${location.name}解锁${growthTitles[growth.get(n.id)!.level]}`,
-                        `${location.name} unlocked ${englishGrowth[growth.get(n.id)!.level]}`,
+                        `${placeName(location, locale)}解锁${growthTitles[growth.get(n.id)!.level]}`,
+                        `${placeName(location, locale)} unlocked ${englishGrowth[growth.get(n.id)!.level]}`,
                       )}
                     >
                       <path
@@ -1488,43 +1529,64 @@ export function LifeWorld({
                       </text>
                     </g>
                   )}
-                  {!opportunity && discoveryLocations.includes(n.id) && (
-                    <g
-                      transform={`translate(0 ${location.category === "campus" || location.category === "office" ? -148 : -111})`}
-                    >
+                  {!opportunity &&
+                    (districtPlan || discoveryLocations.includes(n.id)) && (
                       <g
-                        data-interactive="true"
-                        role="button"
-                        tabIndex={0}
-                        aria-label={t(
-                          `查看${location.name}的微运动`,
-                          `See movements at ${location.name}`,
-                        )}
-                        className="world-v7-marker"
-                        onClick={() =>
-                          onMovementSelect
-                            ? onMovementSelect(n.id)
-                            : select(n.id)
-                        }
-                        onKeyDown={(event) => {
-                          if (event.key === "Enter" || event.key === " ") {
-                            event.preventDefault();
-                            if (onMovementSelect) onMovementSelect(n.id);
-                            else select(n.id);
-                          }
-                        }}
+                        transform={`translate(0 ${location.category === "campus" || location.category === "office" ? -148 : -111})`}
                       >
-                        <path d="m-6 12 6 8 6-8" fill="#345b44" />
-                        <circle
-                          r="15"
-                          fill="#345b44"
-                          stroke="#fff7dc"
-                          strokeWidth="2"
-                        />
-                        <Sprout x={-8} y={-8} size={16} color="#fff7dc" />
+                        <g
+                          data-interactive="true"
+                          role="button"
+                          tabIndex={0}
+                          aria-label={t(
+                            `查看${placeName(location, locale)}的微运动`,
+                            `See movements at ${placeName(location, locale)}`,
+                          )}
+                          aria-description={
+                            districtPlan
+                              ? t(
+                                  `${districtPlan.total} 个可用机会${districtPlan.changed ? "，含新增或更新" : ""}`,
+                                  `${districtPlan.total} available ${districtPlan.total === 1 ? "opportunity" : "opportunities"}${districtPlan.changed ? ", including new or updated recommendations" : ""}`,
+                                )
+                              : undefined
+                          }
+                          data-district-plans={districtPlan?.total}
+                          className="world-v7-marker"
+                          onClick={() => select(n.id)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              select(n.id);
+                            }
+                          }}
+                        >
+                          <path
+                            d="m-6 12 6 8 6-8"
+                            fill={districtPlan?.changed ? "#79531e" : "#345b44"}
+                          />
+                          <circle
+                            r="15"
+                            fill={districtPlan?.changed ? "#79531e" : "#345b44"}
+                            stroke="#fff7dc"
+                            strokeWidth="2"
+                          />
+                          {districtPlan ? (
+                            <text
+                              y="5"
+                              textAnchor="middle"
+                              fontSize="13"
+                              fontWeight="700"
+                              fill="#fff7dc"
+                              aria-hidden="true"
+                            >
+                              {districtPlan.total}
+                            </text>
+                          ) : (
+                            <Sprout x={-8} y={-8} size={16} color="#fff7dc" />
+                          )}
+                        </g>
                       </g>
-                    </g>
-                  )}
+                    )}
                   {opportunity && (
                     <g
                       transform={`translate(0 ${location.category === "office" || location.category === "campus" ? -189 : -148})`}
@@ -1532,7 +1594,10 @@ export function LifeWorld({
                       data-interactive="true"
                       role="button"
                       tabIndex={0}
-                      aria-label={`${location.name}的活动机会：${opportunity.quest.title}`}
+                      aria-label={t(
+                        `${placeName(location, locale)}的活动机会：${opportunity.quest.title}`,
+                        `Movement at ${placeName(location, locale)}: ${questTitle(opportunity.quest, locale)}`,
+                      )}
                       onClick={() => select(n.id)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
@@ -1677,8 +1742,14 @@ export function LifeWorld({
                         role="button"
                         tabIndex={0}
                         aria-label={t(
-                          `移到${life.locations.find((l) => l.id === node.id)?.name}空位 ${slot + 1}`,
-                          `Move to slot ${slot + 1} in ${life.locations.find((l) => l.id === node.id)?.name}`,
+                          `移到${placeName(
+                            life.locations.find((l) => l.id === node.id),
+                            locale,
+                          )}空位 ${slot + 1}`,
+                          `Move to slot ${slot + 1} in ${placeName(
+                            life.locations.find((l) => l.id === node.id),
+                            locale,
+                          )}`,
                         )}
                         onClick={() =>
                           void moveDecoration(item.id, node.id, slot)
@@ -1774,8 +1845,14 @@ export function LifeWorld({
         <div className="decoration-toolbar">
           <span>
             {t(
-              `装饰${life.locations.find((l) => l.id === selected)?.name}`,
-              `Decorate ${life.locations.find((l) => l.id === selected)?.name}`,
+              `装饰${placeName(
+                life.locations.find((l) => l.id === selected),
+                locale,
+              )}`,
+              `Decorate ${placeName(
+                life.locations.find((l) => l.id === selected),
+                locale,
+              )}`,
             )}
           </span>
           {(
@@ -1849,8 +1926,11 @@ export function LifeWorld({
         <div className="decoration-editor">
           {selected && (
             <span>
-              {districtFor(
-                life.locations.find((l) => l.id === selected)!.category,
+              {productText(
+                districtFor(
+                  life.locations.find((l) => l.id === selected)!.category,
+                ),
+                locale,
               )}
             </span>
           )}
@@ -1900,7 +1980,7 @@ export function LifeWorld({
 }
 
 export function WorldPreview({ life }: { life: LifeState }) {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const preview = life.locations.filter((l) => l.confirmed).slice(0, 3);
   if (!preview.length) return null;
   return (
@@ -1911,7 +1991,7 @@ export function WorldPreview({ life }: { life: LifeState }) {
       aria-label={
         t("城镇预览", "Town preview") +
         " · " +
-        preview.map((l) => l.name).join(" · ")
+        preview.map((l) => placeName(l, locale)).join(" · ")
       }
     >
       <path d="M30 111 101 78 367 90 293 125Z" fill="#d8e1b5" />

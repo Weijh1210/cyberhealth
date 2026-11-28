@@ -1,3 +1,5 @@
+import { placeName } from "../i18n/lifeLabels";
+import { questTitle } from "../i18n/productContent";
 import { useState } from "react";
 import { ArrowRight, MapPin, Play, Sprout } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -36,6 +38,8 @@ export function Today() {
     })
     .sort((a, b) => Date.parse(b.completedAt!) - Date.parse(a.completedAt!));
   const dayOf = (at: string) => clockAt(Date.parse(at), life.timezone).day;
+  const lastSession = history[0];
+  const lastQuest = lastSession && findQuest(lastSession.questId);
   const completed = history.filter(
     (session) => dayOf(session.completedAt!) === day,
   );
@@ -203,7 +207,7 @@ export function Today() {
                   <div>
                     <Link to={guidedLink(plan)}>{titleFor(plan)}</Link>
                     <p className="fineprint">
-                      <MapPin size={13} /> {plan.location.name} ·{" "}
+                      <MapPin size={13} /> {placeName(plan.location, locale)} ·{" "}
                       {plan.cue.evidence}
                     </p>
                   </div>
@@ -251,9 +255,10 @@ export function Today() {
               </li>
             ))}
           </ul>
-          {history.length > 0 && (
+          {lastSession && (
             <p className="fineprint">
-              {t("最近完成", "Most recent")} · {history[0].title}
+              {t("最近完成", "Most recent")} ·{" "}
+              {lastQuest ? questTitle(lastQuest, locale) : lastSession.title}
             </p>
           )}
           <Link to="/progress">{t("查看进度", "View progress")}</Link>
@@ -297,7 +302,8 @@ export function Today() {
             </h2>
             {reward && rewardLevel ? (
               <p>
-                {t("下一项奖励", "Next reward")} · {reward.location.name} ·{" "}
+                {t("下一项奖励", "Next reward")} ·{" "}
+                {placeName(reward.location, locale)} ·{" "}
                 <strong>
                   {t(growthTitles[rewardLevel], englishGrowth[rewardLevel])}
                 </strong>

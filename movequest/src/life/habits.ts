@@ -1,5 +1,5 @@
-import { clockAt, type LifeState } from "./model";
-import { discoveryFor } from "./discoveries";
+import { clockAt, type LifeState } from "./model.js";
+import { discoveryFor } from "./discoveries.js";
 export const skipLabels = {
   busy: "这次太忙",
   forgot: "忘了",

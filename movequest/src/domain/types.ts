@@ -1,4 +1,4 @@
-import type { LifeState } from "../life/model";
+import type { LifeState } from "../life/model.js";
 export const scenes = ["campus", "office", "home", "outdoors"] as const;
 export type Scene = (typeof scenes)[number];
 export type Locale = "zh-CN" | "zh-TW" | "en";

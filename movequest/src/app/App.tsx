@@ -17,6 +17,7 @@ import {
 } from "react-router-dom";
 import { House, Activity, CalendarDays, SlidersHorizontal } from "lucide-react";
 import { Brand } from "../components/UI";
+import { productText } from "../i18n/productContent";
 import { useStore } from "../state/Store";
 import { translate, type TranslationKey } from "../i18n";
 
@@ -73,8 +74,10 @@ export function App() {
       <>
         {error && (
           <div className="notice danger" role="alert">
-            {error}
-            <Link to="/profile">导出或管理原始数据</Link>
+            {productText(error, locale)}
+            <Link to="/profile">
+              {t("导出或管理原始数据", "Export or manage raw data")}
+            </Link>
           </div>
         )}
         <LifeDiscovery onboarding />
@@ -109,10 +112,10 @@ export function App() {
         <div className="sidebar-bottom">
           <Link to="/profile" className="user-row">
             <span className="avatar">
-              {(state.profile?.name || "新朋友").slice(0, 1)}
+              {(state.profile?.name || t("新朋友", "New explorer")).slice(0, 1)}
             </span>
             <span>
-              {state.profile?.name || "新朋友"}
+              {state.profile?.name || t("新朋友", "New explorer")}
               <small>{t("本机个人资料", "Local profile")}</small>
             </span>
           </Link>
@@ -124,7 +127,9 @@ export function App() {
           <LanguageSwitch />
         </div>
         <div className="topline">
-          <span>Discover Movement in Everyday Life.</span>
+          <span>
+            {t("从日常中发现活动机会。", "Discover movement in everyday life.")}
+          </span>
           <div className="topline-actions">
             <LanguageSwitch />
             <span className="local-status">
@@ -150,7 +155,7 @@ export function App() {
         )}
         {error && (
           <div role="alert" className="notice danger">
-            {error}
+            {productText(error, locale)}
             <Link to="/profile">{t("导出本地数据", "Export local data")}</Link>
           </div>
         )}
@@ -196,10 +201,15 @@ export function App() {
               path="*"
               element={
                 <div className="panel">
-                  <h1>这条小路还没开辟</h1>
-                  <p>回到花园，再选一个方向吧。</p>
+                  <h1>{t("这条小路还没开辟", "Page not found")}</h1>
+                  <p>
+                    {t(
+                      "回到花园，再选一个方向吧。",
+                      "Return to Today to choose another activity.",
+                    )}
+                  </p>
                   <Link className="button primary" to="/">
-                    回到花园
+                    {t("回到花园", "Back to Today")}
                   </Link>
                 </div>
               }

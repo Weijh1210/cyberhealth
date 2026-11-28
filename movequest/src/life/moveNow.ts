@@ -1,6 +1,6 @@
-import type { Quest, Scene } from "../domain/types";
-import type { Category, LifeState } from "./model";
-import { additionalMoves } from "../data/guidedMoves";
+import type { Quest, Scene } from "../domain/types.js";
+import type { Category, LifeState } from "./model.js";
+import { additionalMoves } from "../data/guidedMoves.js";
 
 const sitting = "https://www.nhs.uk/live-well/exercise/sitting-exercises/";
 const strength = "https://www.nhs.uk/live-well/exercise/strength-exercises/";

@@ -1,4 +1,4 @@
-import type { MoveContext } from "./moveNow";
+import type { MoveContext } from "./moveNow.js";
 
 export const placeWords = {
   library: /图书馆|圖書館|\blibrary\b/i,
@@ -47,7 +47,7 @@ export function statedDuration(text: string) {
 }
 
 export const unsafeSituation =
-  /正在(?:开车|開車|开汽车|騎|骑|过马路|過馬路|乘车|坐地铁|坐公交)|(?:我在|还在|還在)(?:开车|開車|骑车|騎車|过马路|過馬路|车上|車上|地铁上|地鐵上|公交上)|\b(?:driving|crossing (?:a |the )?(?:road|street)|on (?:a |the )?(?:bus|train|subway)|riding (?:a |my )?bike)\b/i;
+  /正在(?:开车|開車|开汽车|騎|骑|过马路|過馬路|乘车|坐地铁|坐公交)|(?:我在|还在|還在)(?:开车|開車|骑车|騎車|过马路|過馬路|车上|車上|地铁上|地鐵上|公交上)|\b(?:driving|crossing (?:a |the )?(?:road|street)|on (?:a |the )?(?:bus|train|subway|metro)|riding (?:a |my )?bike)\b/i;
 const noStanding =
   /(?:不能|不可|没法|無法|无法|不便)站|cannot stand|can't stand|unable to stand|stay seated|只能坐/i;
 const noWalking =

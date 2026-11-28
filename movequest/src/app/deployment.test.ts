@@ -14,6 +14,9 @@ it("SPA deployment rewrites deep pages while preserving PWA and static resources
   ])
     expect(fallback.test(route)).toBe(true);
   for (const resource of [
+    "/api/status",
+    "/api/life/extract",
+    "/api/interest",
     "/sw.js",
     "/manifest.webmanifest",
     "/licenses.txt",

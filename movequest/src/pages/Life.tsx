@@ -1,10 +1,12 @@
 import {
   englishCategories,
+  placeName,
   englishTravel,
   englishFacts,
   englishCues,
 } from "../i18n/lifeLabels";
 import { englishPlan } from "../life/planEnglish";
+import { productText, questTitle } from "../i18n/productContent";
 import { LanguageSwitch, useLanguage } from "../i18n/language";
 import { demoEnabled } from "../app/release";
 import { interpretRoutine } from "../life/localRoutine";
@@ -26,8 +28,9 @@ import {
 } from "lucide-react";
 import { Brand, PageTitle } from "../components/UI";
 import { useStore } from "../state/Store";
+import { reduce, type Command } from "../domain/engine";
+import { describeRoutineChanges } from "../life/routineChanges";
 import {
-  mergeLife,
   categories,
   categoryNames,
   activeLife,
@@ -53,7 +56,7 @@ export function LifeDiscovery({
   const { hash } = useLocation();
   const life = activeLife(state);
   const [turns, setTurns] = useState<
-    { user: string; reply: string; question?: string }[]
+    { user: string; reply: [string, string]; question?: string }[]
   >([]);
   const [manual, setManual] = useState(false);
   const [failure, setFailure] = useState(false);
@@ -186,7 +189,12 @@ export function LifeDiscovery({
     if (available !== true) return;
     const history = [...turns.map((turn) => turn.user), user].join("\n");
     if (history.length > 4000) {
-      setError("这轮对话已满。可以确认当前草稿，之后再补充。");
+      setError(
+        t(
+          "这轮对话已满。可以确认当前草稿，之后再补充。",
+          "This conversation is full. Confirm the draft before adding more.",
+        ),
+      );
       return;
     }
     const previous = manual ? undefined : draft;
@@ -209,7 +217,7 @@ export function LifeDiscovery({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           text: history,
-          ...(locale === "en" ? { replyLanguage: "en" } : {}),
+          replyLanguage: locale === "en" ? "en" : "zh-CN",
           latestMessage: user,
           clarifications: [
             ...turns.slice(1).map((turn, index) => ({
@@ -293,45 +301,40 @@ export function LifeDiscovery({
                 "Which activity you already do would you like to pair with movement?",
               )
             : undefined;
-      const places = next.locations.slice(0, 4).map((place) => place.name);
-      const reply = places.length
-        ? t(
-            `我记下了${places.join("、")}${next.locations.length > places.length ? "等地点" : ""}。`,
-            `I noted ${places.join(", ")}${next.locations.length > places.length ? " and more" : ""}.`,
-          )
+      const places = next.locations.slice(0, 4);
+      const reply: [string, string] = places.length
+        ? [
+            `我记下了${places.map((place) => placeName(place, "zh-CN")).join("、")}${next.locations.length > places.length ? "等地点" : ""}。`,
+            `I noted ${places.map((place) => placeName(place, "en")).join(", ")}${next.locations.length > places.length ? " and more" : ""}.`,
+          ]
         : next.events.length || next.preferences?.length || next.constraints
-          ? t(
+          ? [
               "我整理了你补充的日常。",
               "I’ve put the details you shared into the draft.",
-            )
-          : "这次还没有可更新到城镇的资料。";
+            ]
+          : [
+              "这次还没有可更新到城镇的资料。",
+              "This reply did not find anything to add to your town.",
+            ];
       setTurns((previous) => [
         ...previous,
         {
           user,
-          reply:
-            reply +
-            (followUp
-              ? ""
-              : next.locations.length ||
-                  next.events.length ||
-                  next.preferences?.length ||
-                  next.constraints
-                ? t(
-                    "你可以继续补充，也可以先确认草稿。",
-                    "You can add details or confirm this draft.",
-                  )
-                : t(
-                    "可以告诉我你常去哪里，或在那里做什么。",
-                    "You can tell me where you go or what you do there.",
-                  )),
+          reply,
           question: followUp?.slice(0, 300),
         },
       ]);
       setText("");
     } catch (e) {
       setFailure(true);
-      setError(e instanceof Error ? e.message : "请求失败，请重试或手动填写。");
+      setError(
+        e instanceof Error
+          ? e.message
+          : t(
+              "请求失败，请重试或手动填写。",
+              "The request failed. Try again or enter your routine manually.",
+            ),
+      );
     } finally {
       setPending(false);
       requestAnimationFrame(() => composer.current?.focus());
@@ -345,15 +348,22 @@ export function LifeDiscovery({
   const confirm = async () => {
     setError("");
     try {
-      validateDelta(draft);
-      const newPlot =
-        !replace && life.nodes.length && !state.demo
-          ? mergeLife(life, draft).nodes.find(
-              (n) => !life.nodes.some((previous) => previous.id === n.id),
-            )
-          : undefined;
       if (draft.events.some((e) => !e.title.trim()))
         throw Error(t("请补充事件名称。", "Enter a name for each event."));
+      const at = Date.now();
+      const command = {
+        type: "life-confirm",
+        delta: draft,
+        replace,
+        at,
+      } satisfies Command;
+      const confirmed = activeLife(reduce(state, command));
+      const firstTown = !life.nodes.length && confirmed.nodes.length > 0;
+      const { expanded, scene, changes } = describeRoutineChanges(
+        life,
+        confirmed,
+        at,
+      );
       if (!state.profile) {
         const ok = await send({
           type: "profile",
@@ -368,32 +378,33 @@ export function LifeDiscovery({
         });
         if (!ok) return;
       }
-      if (
-        await send({
-          type: "life-confirm",
-          delta: draft,
-          replace,
-          at: Date.now(),
-        })
-      ) {
-        setMessage(
-          t(
-            "日常已确认，生活城镇已更新。",
-            "Routine confirmed. Your town was updated.",
-          ),
-        );
+      if (!(await send(command))) return;
+      if (state.demo) {
+        navigate(draft.cues?.some((cue) => !cue.uncertain) ? "/explore" : "/");
+      } else if (firstTown || expanded || scene) {
+        const query = new URLSearchParams();
+        if (!firstTown && expanded) query.set("expanded", expanded);
+        else if (!firstTown && scene) query.set("scene", scene);
         navigate(
-          newPlot
-            ? `${state.demo ? "/" : "/world"}?expanded=${encodeURIComponent(newPlot.id)}`
-            : draft.cues?.some((cue) => !cue.uncertain)
-              ? "/explore"
-              : state.demo
-                ? "/"
-                : "/world",
+          { pathname: "/world", search: query.toString() },
+          {
+            state: { routineChanges: changes },
+          },
         );
+      } else {
+        setDraft({ locations: [], events: [], questions: [] });
+        setDraftOrigin(undefined);
+        setTurns([]);
+        setManual(false);
+        setReplace(false);
+        setMessage(t("资料已保存。", "Your changes were saved."));
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : "资料无法保存。");
+      setError(
+        e instanceof Error
+          ? e.message
+          : t("资料无法保存。", "Your routine could not be saved."),
+      );
     }
   };
   const edit = () => {
@@ -444,7 +455,7 @@ export function LifeDiscovery({
         }
         action={
           !onboarding ? (
-            <Link className="button" to="/">
+            <Link className="button" to={state.demo ? "/" : "/world"}>
               {t("返回城镇", "Back to my town")}
             </Link>
           ) : undefined
@@ -481,13 +492,24 @@ export function LifeDiscovery({
             tabIndex={0}
           >
             <p className="chat-reply">
-              你平时哪一段特别难腾出时间活动？说说那之前和之后通常在做什么。
+              {t(
+                "你平时哪一段特别难腾出时间活动？说说那之前和之后通常在做什么。",
+                "When is it hardest to make time to move? Tell me what you usually do before and after.",
+              )}
             </p>
             {turns.map((turn, index) => (
               <div className="chat-turn" key={index}>
                 <p className="chat-user">{turn.user}</p>
                 <p className="chat-reply">
-                  {turn.reply}
+                  {t(...turn.reply)}
+                  {!turn.question && (
+                    <span>
+                      {t(
+                        " 你可以继续补充或确认草稿。",
+                        " You can add details or confirm the draft.",
+                      )}
+                    </span>
+                  )}
                   {turn.question && (
                     <>
                       {" "}
@@ -629,7 +651,9 @@ export function LifeDiscovery({
                 {draft.locations.length > 0 && (
                   <p>
                     <strong>{t("地点", "Places")}</strong> ·{" "}
-                    {draft.locations.map((place) => place.name).join("、")}
+                    {draft.locations
+                      .map((place) => placeName(place, locale))
+                      .join(t("、", ", "))}
                   </p>
                 )}
                 {draft.events.length > 0 && (
@@ -645,7 +669,7 @@ export function LifeDiscovery({
                               : event.recurrence === "weekend"
                                 ? t("周末", "Weekends")
                                 : t("随事件", "Event-triggered")}{" "}
-                          · {event.approximate ? "约 " : ""}
+                          · {event.approximate ? t("约 ", "Approx. ") : ""}
                           {event.start && event.end
                             ? `${event.start}–${event.end}`
                             : (event.start ??
@@ -678,9 +702,16 @@ export function LifeDiscovery({
                         <strong>
                           {t(cueLabels[cue.kind], englishCues[cue.kind])}
                         </strong>{" "}
-                        · {places.find((l) => l.id === cue.locationId)?.name}
+                        ·{" "}
+                        {placeName(
+                          places.find((l) => l.id === cue.locationId),
+                          locale,
+                        )}
                         <p>
-                          「{cue.evidence}」{" "}
+                          {t(
+                            `「${cue.evidence}」`,
+                            `“${productText(cue.evidence, locale)}”`,
+                          )}{" "}
                           {cue.uncertain ? t("· 待核实", "· Unconfirmed") : ""}
                         </p>
                         {candidate &&
@@ -691,13 +722,17 @@ export function LifeDiscovery({
                               {t("可探索", "Try")} ·{" "}
                               {(locale === "en"
                                 ? englishPlan(candidate)?.title
-                                : undefined) ?? candidate.quest.title}
+                                : undefined) ??
+                                questTitle(candidate.quest, locale)}
                             </small>
                           )}
                       </div>
                       <button
                         className="text-button"
-                        aria-label={`移除线索 ${t(cueLabels[cue.kind], englishCues[cue.kind])}`}
+                        aria-label={t(
+                          `移除线索 ${cueLabels[cue.kind]}`,
+                          `Remove cue: ${englishCues[cue.kind]}`,
+                        )}
                         onClick={() =>
                           setDraft((d) => ({
                             ...d,
@@ -717,13 +752,19 @@ export function LifeDiscovery({
                         {t(factLabels[fact.kind], englishFacts[fact.kind])}
                       </strong>
                       <p>
-                        「{fact.evidence}」{" "}
+                        {t(
+                          `「${fact.evidence}」`,
+                          `“${productText(fact.evidence, locale)}”`,
+                        )}{" "}
                         {fact.uncertain ? t("· 待核实", "· Unconfirmed") : ""}
                       </p>
                     </div>
                     <button
                       className="text-button"
-                      aria-label={`移除生活事实 ${t(factLabels[fact.kind], englishFacts[fact.kind])}`}
+                      aria-label={t(
+                        `移除生活事实 ${factLabels[fact.kind]}`,
+                        `Remove fact: ${englishFacts[fact.kind]}`,
+                      )}
                       onClick={() =>
                         setDraft((d) => ({
                           ...d,
@@ -759,7 +800,7 @@ export function LifeDiscovery({
                           .filter((l) => l.name.trim())
                           .map((l) => (
                             <option key={l.id} value={l.id}>
-                              {l.name}
+                              {placeName(l, locale)}
                             </option>
                           ))}
                       </select>
@@ -845,16 +886,24 @@ export function LifeDiscovery({
                       [
                         [
                           "walkingAllowed",
-                          "允许走动活动",
+                          t("允许走动活动", "Allow walking"),
                           "Allow walking activities",
                         ],
                         [
                           "standingAllowed",
-                          "允许站立活动",
+                          t("允许站立活动", "Allow standing"),
                           "Allow standing activities",
                         ],
-                        ["armsAllowed", "允许上肢活动", "Allow arm movement"],
-                        ["legsAllowed", "允许腿脚活动", "Allow leg movement"],
+                        [
+                          "armsAllowed",
+                          t("允许上肢活动", "Allow upper-body movement"),
+                          "Allow arm movement",
+                        ],
+                        [
+                          "legsAllowed",
+                          t("允许腿脚活动", "Allow leg and foot movement"),
+                          "Allow leg movement",
+                        ],
                       ] as const
                     ).map(
                       ([key, zh, en]) =>
@@ -887,7 +936,7 @@ export function LifeDiscovery({
                         {t("地点名称", "Place name")}
                         <input
                           maxLength={60}
-                          value={location.name}
+                          value={placeName(location, locale)}
                           onChange={(e) =>
                             setDraft((d) => ({
                               ...d,
@@ -1046,12 +1095,12 @@ export function LifeDiscovery({
                           }
                         >
                           {[
-                            ["unknown", "未说明"],
-                            ["walk", "步行"],
-                            ["subway", "地铁"],
-                            ["bus", "公交"],
-                            ["bike", "骑行"],
-                            ["car", "汽车"],
+                            ["unknown", t("未说明", "Not specified")],
+                            ["walk", t("步行", "On foot")],
+                            ["subway", t("地铁", "Metro")],
+                            ["bus", t("公交", "Bus")],
+                            ["bike", t("骑行", "Bicycle")],
+                            ["car", t("汽车", "Car")],
                           ].map(([v, label]) => (
                             <option key={v} value={v}>
                               {t(
@@ -1090,7 +1139,8 @@ export function LifeDiscovery({
                     </label>
                     <p className="fineprint">
                       {t("来源：", "Source: ")}
-                      {event.evidence || t("待确认", "Unconfirmed")}
+                      {productText(event.evidence, locale) ||
+                        t("待确认", "Unconfirmed")}
                     </p>
                     <button
                       className="text-button"
@@ -1161,7 +1211,7 @@ export function LifeDiscovery({
             {life.locations.map((l) => (
               <div key={l.id}>
                 <span>
-                  {l.name} ·{" "}
+                  {placeName(l, locale)} ·{" "}
                   {t(categoryNames[l.category], englishCategories[l.category])}
                 </span>
                 <button
@@ -1169,12 +1219,15 @@ export function LifeDiscovery({
                   onClick={async () => {
                     if (await send({ type: "life-remove", locationId: l.id }))
                       setMessage(
-                        "地点与关联事件已移除，其他建筑位置保持不变。",
+                        t(
+                          "地点与关联事件已移除，其他建筑位置保持不变。",
+                          "Removed the place and its events. Other buildings remain in place.",
+                        ),
                       );
                   }}
                 >
                   {t("移除", "Remove")}
-                  {l.name}
+                  {placeName(l, locale)}
                 </button>
               </div>
             ))}

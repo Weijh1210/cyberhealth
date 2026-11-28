@@ -3611,6 +3611,7 @@ a {
   max-width: none;
 }
 .personal-town .world-canvas > svg {
+  width: 100%;
   height: clamp(450px, 60vh, 660px);
 }
 .plan-minimum {
@@ -3635,8 +3636,13 @@ a {
 }
 @media (max-width: 700px) {
   .personal-town .world-canvas > svg {
-    height: min(50vh, 430px);
+    height: min(44svh, 380px);
     min-height: 270px;
+  }
+  .personal-town [data-district-plans] {
+    transform-box: fill-box;
+    transform-origin: center;
+    scale: 1.35;
   }
   .town-titlebar {
     align-items: flex-start;
@@ -3735,6 +3741,32 @@ a {
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+.town-plan-update {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid #e3d4ad;
+  border-radius: 12px;
+  background: #fbf4df;
+  color: #563d1d;
+  font-size: 0.9rem;
+}
+.town-plan-update > svg,
+.town-plan-change {
+  flex: none;
+}
+.town-plan-change {
+  font-size: 0.82rem;
+  color: #79531e;
+}
+.world-v7-marker {
+  cursor: pointer;
+}
+.world-v7-marker:focus-visible circle {
+  stroke: #f4cc72;
+  stroke-width: 3px;
 }
 .town-new-marker {
   pointer-events: none;

@@ -16,6 +16,8 @@ import {
   Sprout,
   Square,
 } from "lucide-react";
+import { placeName } from "../i18n/lifeLabels";
+import { localizedQuest, productText } from "../i18n/productContent";
 import { useLanguage } from "../i18n/language";
 import { useStore } from "../state/Store";
 import { activeLife } from "../life/model";
@@ -80,7 +82,7 @@ const segmentSeconds = (n: number) =>
   n >= 60 ? (n / 60).toFixed(n % 60 ? 1 : 0) : undefined;
 
 export function Movement() {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const { state, send, owner, busy } = useStore();
   const life = activeLife(state);
   const navigate = useNavigate();
@@ -404,7 +406,7 @@ export function Movement() {
                 .filter((l) => l.confirmed)
                 .map((l) => (
                   <option key={l.id} value={`place:${l.id}`}>
-                    {l.name}
+                    {placeName(l, locale)}
                   </option>
                 ))}
               {Object.entries(sceneLabels).map(([id, names]) => (
@@ -735,7 +737,7 @@ export function GuidedMovement() {
     ? move.instructions.map((step) => t(...step))
     : authored
       ? [authored.action, authored.minimum]
-      : activity.steps;
+      : localizedQuest(activity, locale).steps;
   const sameOpportunity = opportunity?.quest.id === id;
   const libraryEntry =
     params.get("library") === "1" &&
@@ -815,8 +817,8 @@ export function GuidedMovement() {
         <p>
           {location
             ? t(
-                `${location.name} 的街区成长已记录。`,
-                `Growth was recorded in ${location.name}.`,
+                `${placeName(location, locale)} 的街区成长已记录。`,
+                `Growth was recorded in ${placeName(location, locale)}.`,
               )
             : t("这次活动已记入今日。", "This activity counts toward today.")}
         </p>
@@ -913,7 +915,7 @@ export function GuidedMovement() {
                         )
                         .map((l) => (
                           <option key={l.id} value={l.id}>
-                            {l.name}
+                            {placeName(l, locale)}
                           </option>
                         ))}
                     </select>
@@ -1220,7 +1222,8 @@ export function GuidedMovement() {
           </ol>
           {!move && (
             <p className="move-condition">
-              <Shield size={17} /> {activityPolicy(activity).cautions}
+              <Shield size={17} />{" "}
+              {productText(activityPolicy(activity).cautions, locale)}
             </p>
           )}
           {move && (

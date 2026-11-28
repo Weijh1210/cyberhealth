@@ -44,6 +44,8 @@ test("a personal plan leads directly to a town reward", async ({
     .fill(`我在松果图书馆${quote}。${goal}。`);
   await page.getByRole("button", { name: "发送", exact: true }).click();
   await page.getByRole("button", { name: "确认资料并生成城镇" }).click();
+  await expect(page).toHaveURL(/\/world$/);
+  await page.getByRole("link", { name: "我的行动计划" }).click();
   await expect(
     page.getByRole("heading", { name: "我的行动计划" }),
   ).toBeVisible();

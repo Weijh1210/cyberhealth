@@ -3,7 +3,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     {
-      "source": "/((?!assets/|icons/|sw\\.js|workbox-|manifest\\.webmanifest|licenses\\.txt).*)",
+      "source": "/((?!api(?:/|$)|assets/|icons/|sw\\.js|workbox-|manifest\\.webmanifest|licenses\\.txt).*)",
       "destination": "/index.html"
     }
   ],
@@ -26,5 +26,12 @@
         }
       ]
     }
-  ]
+  ],
+  "framework": "vite",
+  "functions": {
+    "api/life/extract.ts": {
+      "includeFiles": "server/prompts/**",
+      "maxDuration": 60
+    }
+  }
 }

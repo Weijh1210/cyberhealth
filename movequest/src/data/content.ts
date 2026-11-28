@@ -1,6 +1,6 @@
-import { moveQuests } from "../life/moveNow";
-import { extraQuests } from "./extraActivities";
-import type { Lesson, Quest, Scene } from "../domain/types";
+import { moveQuests } from "../life/moveNow.js";
+import { extraQuests } from "./extraActivities.js";
+import type { Lesson, Quest, Scene } from "../domain/types.js";
 export const sceneInfo: Record<
   Scene,
   { name: string; en: string; description: string; cue: string }

@@ -1,3 +1,5 @@
+import { productText } from "../i18n/productContent";
+import { useLanguage } from "../i18n/language";
 import { garden } from "../domain/engine";
 import type { Scene } from "../domain/types";
 export function Plant({
@@ -47,13 +49,17 @@ export function GardenScene({
   xp?: number;
   compact?: boolean;
 }) {
+  const { locale, t } = useLanguage();
   const g = garden(xp);
   return (
     <svg
       className={`garden-art ${compact ? "compact" : ""}`}
       viewBox="0 0 720 340"
       role="img"
-      aria-label={`花园成长：${g.name}，${xp} XP`}
+      aria-label={t(
+        `花园成长：${g.name}，${xp} XP`,
+        `Garden growth: ${productText(g.name, locale)}, ${xp} XP`,
+      )}
     >
       <rect width="720" height="340" rx="24" fill="#eef1e5" />
       <circle cx="580" cy="67" r="29" fill="#e6d89e" />

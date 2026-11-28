@@ -1,8 +1,8 @@
-import type { MovePreferences } from "./moveNow";
-import { validateAnalytics, type AnalyticsEvent } from "./analytics";
-import { validateHabits, type Habit, type Attempt } from "./habits";
-import { validateContext, type Cue, type ContextFact } from "./context";
-import { nextPlot } from "./worldLayout";
+import type { MovePreferences } from "./moveNow.js";
+import { validateAnalytics, type AnalyticsEvent } from "./analytics.js";
+import { validateHabits, type Habit, type Attempt } from "./habits.js";
+import { validateContext, type Cue, type ContextFact } from "./context.js";
+import { nextPlot } from "./worldLayout.js";
 export const categories = [
   "home",
   "office",

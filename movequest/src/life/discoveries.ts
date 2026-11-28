@@ -1,9 +1,9 @@
-import { findQuest } from "../data/content";
-import { activityPolicy, fitsMovementLimits } from "./activities";
-import { cueLabels, type Cue, type PlanMethod } from "./context";
-import { statedDuration } from "./immediate";
-import { categoryScene, findMove } from "./moveNow";
-import type { Category, LifeState } from "./model";
+import { findQuest } from "../data/content.js";
+import { activityPolicy, fitsMovementLimits } from "./activities.js";
+import { cueLabels, type Cue, type PlanMethod } from "./context.js";
+import { statedDuration } from "./immediate.js";
+import { categoryScene, findMove } from "./moveNow.js";
+import type { Category, LifeState } from "./model.js";
 
 const actions: Record<Cue["kind"], Partial<Record<Category, string>>> = {
   phone_break: {
@@ -263,7 +263,7 @@ export function hasPlanContext(cue: Cue) {
   return !cue.uncertain && !!fit && fit !== cue.evidence.trim();
 }
 
-export function discover(
+export function availableDiscoveries(
   life: LifeState,
   now: number,
   seconds = 300,
@@ -335,12 +335,22 @@ export function discover(
     })
     .sort((a, b) => b.score - a.score || a.cue.id.localeCompare(b.cue.id));
   const displayed = new Set<string>();
-  return scored
-    .filter((d) => {
-      const key = `${d.location.id}:${d.quest.seconds <= 60 ? "short" : d.policy.subtype}`;
-      if (displayed.has(key)) return false;
-      displayed.add(key);
-      return true;
-    })
-    .slice(0, personalOnly ? 2 : 3);
+  return scored.filter((d) => {
+    const key = `${d.location.id}:${d.quest.seconds <= 60 ? "short" : d.policy.subtype}`;
+    if (displayed.has(key)) return false;
+    displayed.add(key);
+    return true;
+  });
+}
+
+export function discover(
+  life: LifeState,
+  now: number,
+  seconds = 300,
+  personalOnly = false,
+) {
+  return availableDiscoveries(life, now, seconds, personalOnly).slice(
+    0,
+    personalOnly ? 2 : 3,
+  );
 }

@@ -1,4 +1,4 @@
-import type { Quest } from "../domain/types";
+import type { Quest } from "../domain/types.js";
 type Extra = {
   id: string;
   scene: Quest["scene"];

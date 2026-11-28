@@ -444,7 +444,7 @@ test("preferences, language fallback, navigation, export and confirmed reset wor
       info.project.name === "mobile" ? "Mobile navigation" : "Main navigation",
   });
   for (const [name, title] of [
-    ["Today", "小芽，让今天长出一点新绿。"],
+    ["Today", "Welcome back, 小芽."],
     ["My world", "My world"],
     ["Movement", "Move now"],
     ["My life", "My life"],

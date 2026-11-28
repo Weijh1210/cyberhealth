@@ -49,7 +49,7 @@ test("English persists and a confirmed itinerary expands the same town", async (
     });
   });
   await page.goto("/");
-  await page.getByRole("button", { name: "EN", exact: true }).click();
+  await page.getByRole("button", { name: "英文", exact: true }).click();
   await expect(
     page.getByRole("heading", {
       name: "Find movement in your day",
@@ -119,12 +119,36 @@ test("English persists and a confirmed itinerary expands the same town", async (
   await expect(
     unexplored.getByRole("button", { name: "Maple Park" }),
   ).toHaveCount(0);
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("heading", { name: "Preferences", exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Your data stays on this device" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Clear MoveQuest data…" }).click();
+  await expect(
+    page.getByRole("button", { name: "Confirm clearing MoveQuest data" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(page.locator("main")).not.toContainText(/\p{Script=Han}/u);
+  await page.goto("/learn");
+  await expect(
+    page.getByRole("heading", { name: "Learn about everyday movement" }),
+  ).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(/\p{Script=Han}/u);
+  await page.goto("/world");
   await page
-    .getByRole("button", { name: "中文", exact: true })
+    .getByRole("button", { name: "Chinese", exact: true })
     .filter({ visible: true })
     .click();
   await expect(
     page.getByRole("heading", { name: "我的世界", exact: true }),
   ).toBeVisible();
+  await page.goto("/profile");
+  await expect(
+    page.getByRole("heading", { name: "你的数据，留在本机" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "保存偏好" })).toBeVisible();
   expect(requests).toBe(2);
 });

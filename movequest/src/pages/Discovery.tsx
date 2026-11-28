@@ -1,4 +1,6 @@
 import { englishPlan, englishSkip } from "../life/planEnglish";
+import { placeName } from "../i18n/lifeLabels";
+import { productText } from "../i18n/productContent";
 import { useLanguage } from "../i18n/language";
 import { demoEnabled } from "../app/release";
 import { everydayNames } from "../data/everydayNames";
@@ -11,7 +13,11 @@ import { ArrowRight, BookOpen, Footprints, Sprout } from "lucide-react";
 import { PageTitle } from "../components/UI";
 import { useStore } from "../state/Store";
 import { activeLife, clockAt } from "../life/model";
-import { discover, type Discovery } from "../life/discoveries";
+import {
+  availableDiscoveries,
+  discover,
+  type Discovery,
+} from "../life/discoveries";
 import { movementEvidence } from "../life/evidence";
 import { skipLabels, type Attempt } from "../life/habits";
 import { Explore } from "./Home";
@@ -162,7 +168,8 @@ function DiscoveryCard({
     <article className={`discovery-card ${featured ? "featured" : ""}`}>
       <p className="discovery-context">
         <Footprints size={15} />
-        {discovery.location.name} · {t(discovery.kind, "From your routine")} ·{" "}
+        {placeName(discovery.location, locale)} ·{" "}
+        {t(discovery.kind, "From your routine")} ·{" "}
         {t(
           `${discovery.quest.seconds / 60} 分钟以内`,
           `Up to ${discovery.quest.seconds / 60} min`,
@@ -182,15 +189,15 @@ function DiscoveryCard({
           ? t("AI 整理 · 已确认", "AI-assisted · confirmed")
           : t("本机计划 · 已确认", "Local plan · confirmed")}
       </p>
-      <blockquote>「{discovery.cue.evidence}」</blockquote>
+      <blockquote>「{productText(discovery.cue.evidence, locale)}」</blockquote>
       {discovery.cue.plan?.fitEvidence &&
         discovery.cue.plan.fitEvidence !== discovery.cue.evidence && (
           <p className="discovery-fit">
             {t("也考虑了你说的", "Your plan also takes this into account:")} 「
-            {discovery.cue.plan.fitEvidence}」
+            {productText(discovery.cue.plan.fitEvidence, locale)}」
           </p>
         )}
-      <p>{translated?.action ?? discovery.action}</p>
+      <p>{translated?.action ?? productText(discovery.action, locale)}</p>
       <p className="fineprint">
         {discovery.addedSeconds
           ? t(
@@ -205,11 +212,13 @@ function DiscoveryCard({
       {discovery.minimum && (
         <p className="plan-minimum">
           <strong>{t("只做一点也可以", "Make it smaller")}</strong>{" "}
-          {translated?.minimum ?? discovery.minimum}
+          {translated?.minimum ?? productText(discovery.minimum, locale)}
         </p>
       )}
       {!discovery.tailored && (
-        <p className="discovery-fit">{discovery.fitNote}</p>
+        <p className="discovery-fit">
+          {productText(discovery.fitNote, locale)}
+        </p>
       )}
       {trying ? (
         <AttemptForm
@@ -275,7 +284,11 @@ function DiscoveryCard({
         <a href={movementEvidence.url} target="_blank" rel="noreferrer">
           {t("查看世卫组织指南", "Read the WHO guideline")}
         </a>
-        <p>{discovery.policy.cautions}</p>
+        <p>
+          {move
+            ? t(...move.safety)
+            : productText(discovery.policy.cautions, locale)}
+        </p>
         {alternative && (
           <p>
             {t("可替代", "Alternative")} ·{" "}
@@ -318,7 +331,7 @@ function DiscoveryCard({
 }
 
 export function TodayDiscoveries() {
-  const { t } = useLanguage();
+  const { locale, t } = useLanguage();
   const { state, send, busy } = useStore();
   const life = activeLife(state);
   const [now, setNow] = useState(Date.now);
@@ -326,7 +339,9 @@ export function TodayDiscoveries() {
     discovery: Discovery;
     status: Attempt["status"];
   }>();
-  const options = discover(life, now);
+  const options = state.demo
+    ? discover(life, now)
+    : availableDiscoveries(life, now);
   const displayed = options.map((o) => o.cue.id).join(",");
   const day = clockAt(now, life.timezone).day;
   useEffect(() => {
@@ -344,12 +359,18 @@ export function TodayDiscoveries() {
     return (
       <>
         <section className="panel discovery-no-cues">
-          <h2>从一个真实生活间隙开始</h2>
+          <h2>
+            {t("从一个真实生活间隙开始", "Start with a moment in your day")}
+          </h2>
           <p>
-            说说你通常在哪里、什么时候会停一下。比如完成作业后想刷手机，或者收尾一项工作才离开桌前。
+            {t(
+              "说说你通常在哪里、什么时候会停一下。比如完成作业后想刷手机，或者收尾一项工作才离开桌前。",
+              "Tell us where and when you usually pause, such as after finishing a study task or wrapping up work.",
+            )}
           </p>
           <Link className="button primary" to="/life">
-            聊聊我的生活 <ArrowRight size={16} />
+            {t("聊聊我的生活", "Describe my routine")}
+            <ArrowRight size={16} />
           </Link>
         </section>
         {state.demo && <Explore />}
@@ -361,7 +382,11 @@ export function TodayDiscoveries() {
   return (
     <>
       <PageTitle
-        title={state.demo ? "今日发现" : t("我的行动计划", "My action plan")}
+        title={
+          state.demo
+            ? t("今日发现", "Today's discoveries")
+            : t("我的行动计划", "My action plan")
+        }
         description={
           options.length
             ? t("先选一个想试的。", "Pick one thing you’d like to try.")
@@ -387,8 +412,8 @@ export function TodayDiscoveries() {
             <p>
               {result.status === "done"
                 ? t(
-                    `${result.discovery.location.name}多了一点新绿。`,
-                    `${result.discovery.location.name} has grown a little.`,
+                    `${placeName(result.discovery.location, locale)}多了一点新绿。`,
+                    `${placeName(result.discovery.location, locale)} has grown a little.`,
                   )
                 : t(
                     "下次会优先考虑其他线索，你也可以继续照原来的方式休息。",

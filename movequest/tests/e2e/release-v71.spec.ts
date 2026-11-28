@@ -46,6 +46,8 @@ for (const routine of routines) {
     await page.getByRole("button", { name: "在本机整理", exact: true }).click();
     await expect(page.getByText("本机识别结果", { exact: true })).toBeVisible();
     await page.getByRole("button", { name: "确认资料并生成城镇" }).click();
+    await expect(page).toHaveURL(/\/world$/);
+    await page.getByRole("link", { name: "我的行动计划" }).click();
     const offer = page.getByRole("article").filter({
       has: page.getByRole("heading", { name: routine.action, exact: true }),
     });
@@ -70,6 +72,7 @@ test("production opens personal space and confirms guided time, growth and a rec
     .fill(routines[1].text);
   await page.getByRole("button", { name: "在本机整理", exact: true }).click();
   await page.getByRole("button", { name: "确认资料并生成城镇" }).click();
+  await page.getByRole("link", { name: "我的行动计划" }).click();
   await page.getByRole("link", { name: "开始引导活动" }).click();
   const safety = page.getByLabel(
     "我当前远离车流，满足动作的场地和器材要求，没有不适。",
@@ -100,7 +103,13 @@ test("production opens personal space and confirms guided time, growth and a rec
   await page.getByRole("button", { name: "把这个时机种成习惯" }).click();
   await expect(page.getByRole("link", { name: "查看我的习惯" })).toBeVisible();
   await page.getByRole("link", { name: "查看街区变化" }).click();
+  await expect(page).toHaveURL(/\/world\?scene=/);
+  const district = page.getByRole("region", { name: "街区活动" });
+  await expect(
+    district.getByRole("heading", { name: "公司", exact: true }),
+  ).toBeVisible();
   await expect(page.locator("[data-growth]")).toHaveCount(1);
+  await expect(page.locator(".town-plan-update")).toHaveCount(0);
   await page.getByRole("button", { name: "查看公司的微运动" }).click();
   await expect(
     page.getByRole("heading", { name: "这里可以做的活动" }),

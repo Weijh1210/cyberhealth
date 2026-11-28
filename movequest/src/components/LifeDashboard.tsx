@@ -1,5 +1,7 @@
+import { useLanguage } from "../i18n/language";
+import { productText, localizedQuest } from "../i18n/productContent";
 import { discover } from "../life/discoveries";
-import { growthTitles, worldGrowth } from "../life/worldGrowth";
+import { englishGrowth, growthTitles, worldGrowth } from "../life/worldGrowth";
 import { contexts, type EventContext } from "../life/events";
 import { useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -9,6 +11,22 @@ import { activeLife, clockAt, type FeedbackType } from "../life/model";
 import { isQuietTime, recommend, type Opportunity } from "../life/recommend";
 import { LifeWorld } from "./LifeWorld";
 export function LifeDashboard() {
+  const { locale, t } = useLanguage();
+  const contextName = (key: EventContext) =>
+    t(
+      contexts.find(([id]) => id === key)?.[1] ?? "",
+      {
+        desk: "Desk work",
+        meeting_end: "After a meeting",
+        lunch_end: "After lunch",
+        water: "Refilling water",
+        phone: "A call that allows movement",
+        break: "Between tasks",
+        commute: "Travelling between places",
+        leisure: "Leisure time",
+        busy: "Busy",
+      }[key],
+    );
   const { state, send, busy } = useStore();
   const [params] = useSearchParams();
   const [trigger, setTrigger] = useState<EventContext | "">(
@@ -83,16 +101,34 @@ export function LifeDashboard() {
   );
   const quiet = isQuietTime(life.settings, day.time);
   const emptyReason = !life.locations.length
-    ? "先描述日常，让城镇认识你。"
+    ? t(
+        "先描述日常，让城镇认识你。",
+        "Describe your routine to start building your town.",
+      )
     : !life.settings.enabled
-      ? "活动推荐已关闭，可在生活节奏中开启。"
+      ? t(
+          "活动推荐已关闭，可在生活节奏中开启。",
+          "Recommendations are off. You can enable them in Activity limits.",
+        )
       : quiet
-        ? `现在是静默时段（${life.settings.quietStart}–${life.settings.quietEnd}）。`
+        ? t(
+            `现在是静默时段（${life.settings.quietStart}–${life.settings.quietEnd}）。`,
+            `Quiet hours are active (${life.settings.quietStart}–${life.settings.quietEnd}).`,
+          )
         : trigger === "busy"
-          ? "你标记了正在忙，先留出这段时间。"
+          ? t(
+              "你标记了正在忙，先留出这段时间。",
+              "You marked this time as busy. Recommendations will pause.",
+            )
           : !context
-            ? "目前的日程没有匹配到可推荐的空档。时间缺失或正在上课也可能出现这种情况。你可以选一个此刻所在的地点。"
-            : "这个场景暂无符合当前事件、空闲时长和偏好的活动。";
+            ? t(
+                "目前的日程没有匹配到可推荐的空档。时间缺失或正在上课也可能出现这种情况。你可以选一个此刻所在的地点。",
+                "Your routine has no available break right now. Select your current location to look for options.",
+              )
+            : t(
+                "这个场景暂无符合当前事件、空闲时长和偏好的活动。",
+                "No available activity fits this setting, time and your preferences.",
+              );
   const feedback = async (o: Opportunity, type: FeedbackType) => {
     const ok = await send({
       type: "life-feedback",
@@ -119,10 +155,19 @@ export function LifeDashboard() {
     if (ok)
       setStatus(
         type === "not_suitable"
-          ? "已按具体原因调整该活动及相关子类型，不影响无关活动。"
+          ? t(
+              "已按具体原因调整该活动及相关子类型，不影响无关活动。",
+              "Feedback saved. This activity and similar ones will be ranked lower.",
+            )
           : type === "never_recommend"
-            ? "已永久排除这项活动，可在节奏设置中重置。"
-            : "已推迟这项活动，稍后再看。",
+            ? t(
+                "已永久排除这项活动，可在节奏设置中重置。",
+                "This activity is hidden. Restore it in Activity limits.",
+              )
+            : t(
+                "已推迟这项活动，稍后再看。",
+                "This activity is hidden for now.",
+              ),
       );
   };
   const events = life.events
@@ -136,64 +181,72 @@ export function LifeDashboard() {
     <>
       <div className="rhythm-controls">
         <label>
-          事件情境
+          {t("事件情境", "Current event")}
           <select
-            aria-label="事件情境"
+            aria-label={t("事件情境", "Current event")}
             value={trigger}
             onChange={(e) => {
               setTrigger(e.target.value as EventContext);
               setSelected("");
             }}
           >
-            <option value="">按日程／场景判断</option>
-            {contexts.map(([value, title]) => (
+            <option value="">
+              {t("按日程／场景判断", "Use routine or location")}
+            </option>
+            {contexts.map(([value]) => (
               <option key={value} value={value}>
-                {title}
+                {contextName(value)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          此刻的场景
+          {t("此刻的场景", "Current location")}
           <select
-            aria-label="此刻的场景"
+            aria-label={t("此刻的场景", "Current location")}
             value={context}
             onChange={(e) => {
               setContext(e.target.value);
               setSelected(e.target.value);
             }}
           >
-            <option value="">按日程发现机会</option>
+            <option value="">{t("按日程发现机会", "Use my routine")}</option>
             {life.locations.map((l) => (
               <option key={l.id} value={l.id}>
-                {l.name}（手动选择）
+                {t(`${l.name}（手动选择）`, `${l.name} (selected manually)`)}
               </option>
             ))}
           </select>
         </label>
         <label>
-          空闲时长
+          {t("空闲时长", "Time available")}
           <select
             value={minutes}
             onChange={(e) => setMinutes(Number(e.target.value))}
           >
             {[1, 2, 3, 5].map((m) => (
               <option key={m} value={m}>
-                {m} 分钟
+                {t(`${m} 分钟`, `${m} min`)}
               </option>
             ))}
           </select>
         </label>
         <p>
-          {day.weekend ? "周末" : "工作日"} · {day.time} · {life.timezone}
+          {day.weekend ? t("周末", "Weekend") : t("工作日", "Weekday")} ·{" "}
+          {day.time} · {life.timezone}
           <br />
-          根据你提供的生活日程推测，不使用定位。
+          {t(
+            "根据你提供的生活日程推测，不使用定位。",
+            "Based on the routine you shared. Location services are not used.",
+          )}
         </p>
       </div>
       {trigger && (
         <p className={state.demo ? "simulation-label" : "context-label"}>
-          {state.demo ? "演示模拟" : "你主动确认的事件"} ·{" "}
-          {contexts.find((c) => c[0] === trigger)?.[1]} · 不代表实时监测
+          {state.demo
+            ? t("演示模拟", "Demo data")
+            : t("你主动确认的事件", "Confirmed event")}{" "}
+          · {contextName(trigger)} · {t("不代表实时监测", "No live monitoring")}
         </p>
       )}
       <div className="life-town-layout">
@@ -222,52 +275,69 @@ export function LifeDashboard() {
           onClick={() => setSheet(!sheet)}
         >
           {sheet
-            ? "收起活动详情"
+            ? t("收起活动详情", "Hide activity details")
             : choices.length
-              ? `查看活动机会 · ${choices.length}`
+              ? t(
+                  `查看活动机会 · ${choices.length}`,
+                  `View suggestions · ${choices.length}`,
+                )
               : sceneDiscoveries.length
-                ? `生活发现 · ${sceneDiscoveries.length}`
-                : "此刻暂无推荐"}
+                ? t(
+                    `生活发现 · ${sceneDiscoveries.length}`,
+                    `Routine discoveries · ${sceneDiscoveries.length}`,
+                  )
+                : t("此刻暂无推荐", "No suggestions right now")}
         </button>
         <aside className={`opportunity-panel ${sheet ? "sheet-open" : ""}`}>
           <button
             className="sheet-close text-button"
             onClick={() => setSheet(false)}
           >
-            收起详情
+            {t("收起详情", "Hide details")}
           </button>
           <div className="section-heading">
-            <h2>留给自己的间隙</h2>
+            <h2>{t("留给自己的间隙", "Your activity options")}</h2>
             <Clock3 size={20} />
           </div>
           {choices.length > 0 && sceneDiscoveries.length > 0 && (
             <p>
               <Link className="text-link" to="/explore">
-                查看生活线索发现 <ArrowRight size={16} />
+                {t("查看生活线索发现", "Open my action plan")}
+                <ArrowRight size={16} />
               </Link>
             </p>
           )}
           {selected && growth.get(selected) && (
             <p className="growth-scene-note">
-              {growthTitles[growth.get(selected)!.level]} · 来自你确认的尝试
+              {t(
+                growthTitles[growth.get(selected)!.level],
+                englishGrowth[growth.get(selected)!.level],
+              )}{" "}
+              · {t("来自你确认的尝试", "From your confirmed attempts")}
             </p>
           )}
           {choices.length > 0 && (
             <label className="feedback-reason">
-              不适合的原因
+              {t("不适合的原因", "Why it does not fit")}
               <select
-                aria-label="反馈原因"
+                aria-label={t("反馈原因", "Reason for feedback")}
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
               >
                 {[
-                  ["not_interested", "对这类活动没兴趣"],
-                  ["too_busy", "现在太忙"],
-                  ["too_difficult", "难度不适合"],
-                  ["already_done", "已经做过"],
-                  ["wrong_time", "时间不对"],
-                  ["wrong_context", "地点／情境不对"],
-                  ["shorter", "希望更短一点"],
+                  [
+                    "not_interested",
+                    t("对这类活动没兴趣", "Not interested in this activity"),
+                  ],
+                  ["too_busy", t("现在太忙", "Too busy right now")],
+                  ["too_difficult", t("难度不适合", "Difficulty does not fit")],
+                  ["already_done", t("已经做过", "Already did it")],
+                  ["wrong_time", t("时间不对", "Wrong time")],
+                  [
+                    "wrong_context",
+                    t("地点／情境不对", "Wrong location or setting"),
+                  ],
+                  ["shorter", t("希望更短一点", "Prefer something shorter")],
                 ].map(([value, label]) => (
                   <option key={value} value={value}>
                     {label}
@@ -289,26 +359,42 @@ export function LifeDashboard() {
                 ) : (
                   <Footprints size={17} />
                 )}{" "}
-                {o.policy.category === "rest" ? "休息" : "自然微动"} ·{" "}
-                {o.location.name} · {o.quest.seconds / 60} 分钟
+                {o.policy.category === "rest"
+                  ? t("休息", "Rest")
+                  : t("自然微动", "Everyday movement")}{" "}
+                · {o.location.name} ·{" "}
+                {t(
+                  `${o.quest.seconds / 60} 分钟`,
+                  `${o.quest.seconds / 60} min`,
+                )}
               </div>
-              <h3>{o.quest.title}</h3>
-              <p>{o.quest.description}</p>
+              <h3>{localizedQuest(o.quest, locale).title}</h3>
+              <p>{localizedQuest(o.quest, locale).description}</p>
               <details>
-                <summary>为什么推荐 · {Math.round(o.score)} 分</summary>
+                <summary>
+                  {t(
+                    `为什么推荐 · ${Math.round(o.score)} 分`,
+                    `Why this fits · Score ${Math.round(o.score)}`,
+                  )}
+                </summary>
                 <ul>
                   {o.reasons.map((reason) => (
-                    <li key={reason}>{reason}</li>
+                    <li key={reason}>{productText(reason, locale)}</li>
                   ))}
                 </ul>
-                <p>内容状态：编辑核对的日常建议，未经临床验证。</p>
+                <p>
+                  {t(
+                    "内容状态：编辑核对的日常建议，未经临床验证。",
+                    "General everyday activity, checked by the editorial team.",
+                  )}
+                </p>
               </details>
               <Link
                 className="button primary"
                 to={`/quest/${o.quest.id}`}
                 onClick={() => void feedback(o, "interested")}
               >
-                查看活动
+                {t("查看活动", "View movement")}
                 <ArrowRight size={16} />
               </Link>
               <div className="feedback-actions">
@@ -316,25 +402,25 @@ export function LifeDashboard() {
                   disabled={busy}
                   onClick={() => void feedback(o, "not_now")}
                 >
-                  现在不想
+                  {t("现在不想", "Not now")}
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => void feedback(o, "not_suitable")}
                 >
-                  不适合我
+                  {t("不适合我", "Does not fit")}
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => void feedback(o, "remind_later")}
                 >
-                  30 分钟后
+                  {t("30 分钟后", "In 30 minutes")}
                 </button>
                 <button
                   disabled={busy}
                   onClick={() => void feedback(o, "never_recommend")}
                 >
-                  以后不推荐
+                  {t("以后不推荐", "Never recommend")}
                 </button>
               </div>
             </article>
@@ -343,16 +429,22 @@ export function LifeDashboard() {
             (sceneDiscoveries.length ? (
               <div className="opportunity-empty">
                 <Sprout size={30} />
-                <h3>这里有可以试的微动</h3>
-                <p>来自你说过的日常。等对应的时机出现时再试。</p>
+                <h3>{t("这里有可以试的微动", "Movements to try here")}</h3>
+                <p>
+                  {t(
+                    "来自你说过的日常。等对应的时机出现时再试。",
+                    "These come from your routine. Try one the next time its cue comes up.",
+                  )}
+                </p>
                 <Link className="button primary" to="/explore">
-                  查看生活线索发现 <ArrowRight size={16} />
+                  {t("查看生活线索发现", "Open my action plan")}
+                  <ArrowRight size={16} />
                 </Link>
               </div>
             ) : (
               <div className="opportunity-empty">
                 <Coffee size={30} />
-                <h3>此刻，可以留白。</h3>
+                <h3>{t("此刻，可以留白。", "Take a break for now")}</h3>
                 <p>{emptyReason}</p>
                 {selectedLocation &&
                   context !== selected &&
@@ -365,38 +457,54 @@ export function LifeDashboard() {
                         setTrigger("");
                       }}
                     >
-                      在{selectedLocation.name}找机会
+                      {t(
+                        `在${selectedLocation.name}找机会`,
+                        `Find a movement at ${selectedLocation.name}`,
+                      )}
                     </button>
                   )}
                 <Link
                   to={life.locations.length ? "/rhythm" : "/life"}
                   className="text-link"
                 >
-                  {life.locations.length ? "调整生活节奏" : "添加生活地点"}
+                  {life.locations.length
+                    ? t("调整生活节奏", "Adjust activity settings")
+                    : t("添加生活地点", "Add a place")}
                   <ArrowRight size={16} />
                 </Link>
               </div>
             ))}
           <p role="status">{status}</p>
           <Link className="text-link" to="/rhythm">
-            查看反馈与节奏设置
+            {t("查看反馈与节奏设置", "View activity limits and feedback")}
             <ArrowRight size={15} />
           </Link>
         </aside>
       </div>
       <section className="discovery-journal">
         <div className="section-heading">
-          <h2>世界发现手记</h2>
+          <h2>{t("世界发现手记", "My town discoveries")}</h2>
           <Link to="/demo">
-            演示与世界扩展 <ArrowRight size={15} />
+            {t("演示与世界扩展", "Demo and town expansion")}
+            <ArrowRight size={15} />
           </Link>
         </div>
-        <div role="region" tabIndex={0} aria-label="已发现地点，可横向滚动">
+        <div
+          role="region"
+          tabIndex={0}
+          aria-label={t(
+            "已发现地点，可横向滚动",
+            "Discovered places. Scroll horizontally for more.",
+          )}
+        >
           {life.locations.map((l) => (
             <span key={l.id}>
               {l.name}
               <small>
-                已确认 · {l.source === "ai" ? "来自生活描述" : "手动确认"}
+                {t("已确认", "Confirmed")} ·{" "}
+                {l.source === "ai"
+                  ? t("来自生活描述", "From your routine")
+                  : t("手动确认", "Confirmed manually")}
               </small>
             </span>
           ))}
@@ -404,28 +512,41 @@ export function LifeDashboard() {
       </section>
       <section className="life-timeline">
         <div className="section-heading">
-          <h2>今天的生活节奏</h2>
+          <h2>{t("今天的生活节奏", "Today's routine")}</h2>
           <Link to="/life">
-            编辑日常
+            {t("编辑日常", "Edit routine")}
             <ArrowRight size={16} />
           </Link>
         </div>
         {!events.length ? (
-          <p>还没有今天的日程。补充工作日或周末事件，地图会随生活一起扩展。</p>
+          <p>
+            {t(
+              "还没有今天的日程。补充工作日或周末事件，地图会随生活一起扩展。",
+              "No routine events today. Add weekday or weekend events to grow your town.",
+            )}
+          </p>
         ) : (
-          <ol tabIndex={0} aria-label="日程时间轴，可横向滚动">
+          <ol
+            tabIndex={0}
+            aria-label={t(
+              "日程时间轴，可横向滚动",
+              "Routine timeline. Scroll horizontally for more.",
+            )}
+          >
             {events.map((e) => (
               <li key={e.id}>
                 <time>
                   {e.start
-                    ? `${e.approximate ? "约 " : ""}${e.start}`
-                    : "时间待补充"}
+                    ? `${e.approximate ? t("约 ", "Approx. ") : ""}${e.start}`
+                    : t("时间待补充", "Time not specified")}
                   {e.end ? ` — ${e.end}` : ""}
                 </time>
                 <strong>{e.title}</strong>
                 <span>
                   {life.locations.find((l) => l.id === e.locationId)?.name} ·{" "}
-                  {e.busy ? "专注时段" : "潜在空闲窗口"}
+                  {e.busy
+                    ? t("专注时段", "Busy time")
+                    : t("潜在空闲窗口", "Possible break")}
                 </span>
               </li>
             ))}

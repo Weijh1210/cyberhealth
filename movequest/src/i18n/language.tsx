@@ -43,24 +43,26 @@ export function useLanguage() {
 }
 
 export function LanguageSwitch() {
-  const { locale, setLocale } = useLanguage();
+  const { locale, t, setLocale } = useLanguage();
   return (
-    <div className="language-switch" role="group" aria-label="Language / 语言">
+    <div
+      className="language-switch"
+      role="group"
+      aria-label={t("界面语言", "Interface language")}
+    >
       <button
         type="button"
         aria-pressed={locale !== "en"}
-        lang="zh-CN"
         onClick={() => void setLocale("zh-CN")}
       >
-        中文
+        {t("中文", "Chinese")}
       </button>
       <button
         type="button"
         aria-pressed={locale === "en"}
-        lang="en"
         onClick={() => void setLocale("en")}
       >
-        EN
+        {t("英文", "English")}
       </button>
     </div>
   );

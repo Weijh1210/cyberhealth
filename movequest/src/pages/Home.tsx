@@ -1,3 +1,5 @@
+import { localizedQuest, productText } from "../i18n/productContent";
+import { useLanguage } from "../i18n/language";
 import { PersonalTown } from "../components/PersonalTown";
 import { LifeDashboard } from "../components/LifeDashboard";
 import { activityPolicy } from "../life/activities";
@@ -15,10 +17,11 @@ export function Home() {
   return state.demo ? <LegacyHome /> : <PersonalTown />;
 }
 export function LegacyHome() {
+  const { locale, t } = useLanguage();
   const { state } = useStore();
   const a = stats(state);
   const g = garden(a.xp);
-  const name = state.profile?.name || "新朋友";
+  const name = state.profile?.name || t("新朋友", "New explorer");
   const recommendation = quests
     .filter(
       (q) =>
@@ -40,8 +43,8 @@ export function LegacyHome() {
   return (
     <>
       <PageTitle
-        title={`${name}，让今天长出一点新绿。`}
-        description={new Date().toLocaleDateString("zh-CN", {
+        title={t(`${name}，让今天长出一点新绿。`, `Welcome back, ${name}.`)}
+        description={new Date().toLocaleDateString(locale, {
           timeZone: state.demo
             ? state.demoLife?.timezone
             : state.life?.timezone,
@@ -52,59 +55,78 @@ export function LegacyHome() {
         action={
           <Link className="button" to="/own-move">
             <Plus size={17} />
-            记录我的微动
+            {t("记录我的微动", "Create a movement")}
           </Link>
         }
       />
       <LifeDashboard />
       <details className="legacy-garden">
-        <summary>我的微动成长与今日记录</summary>
+        <summary>
+          {t("我的微动成长与今日记录", "My growth and today's records")}
+        </summary>
         <div className="home-grid">
           <section className="garden-panel">
             <div className="section-heading">
               <div>
-                <h2>我的日常花园</h2>
-                <p>每一次轻动，都在这里留下生长。</p>
+                <h2>{t("我的日常花园", "My everyday garden")}</h2>
+                <p>
+                  {t(
+                    "每一次轻动，都在这里留下生长。",
+                    "Your garden grows with the activities you record.",
+                  )}
+                </p>
               </div>
               <span className="badge">Lv. {1 + Math.floor(a.xp / 100)}</span>
             </div>
             <GardenScene xp={a.xp} />
             <div className="garden-caption">
               <div>
-                <span className="meta">成长阶段 {g.index + 1} / 5</span>
-                <h3>{g.name}</h3>
+                <span className="meta">
+                  {t("成长阶段", "Growth stages")}
+                  {g.index + 1} / 5
+                </span>
+                <h3>{productText(g.name, locale)}</h3>
               </div>
               <span className="xp-label">{a.xp} XP</span>
             </div>
             <Meter
-              label="植物成长"
+              label={t("植物成长", "Plant growth")}
               value={a.xp - g.xp}
               max={g.next ? g.next.xp - g.xp : Math.max(1, a.xp - g.xp)}
             />
             <div className="progress-caption">
               <span>
                 {g.next
-                  ? `距离「${g.next.name}」还差 ${g.next.xp - a.xp} XP`
-                  : "花园已经盛放，每次微动依然值得记录。"}
+                  ? t(
+                      `距离「${g.next.name}」还差 ${g.next.xp - a.xp} XP`,
+                      `${g.next.xp - a.xp} XP until ${productText(g.next.name, locale)}`,
+                    )
+                  : t(
+                      "花园已经盛放，每次微动依然值得记录。",
+                      "Your garden is in bloom. Keep recording activities that fit your day.",
+                    )}
               </span>
               <Link to="/learn">
-                查看奖励 <ArrowUpRight size={14} />
+                {t("查看奖励", "View rewards")}
+                <ArrowUpRight size={14} />
               </Link>
             </div>
           </section>
           <aside className="today-panel panel">
             <div className="section-heading">
-              <h2>今天的小进展</h2>
-              <span className="meta">慢慢来也很好</span>
+              <h2>{t("今天的小进展", "Today's progress")}</h2>
+              <span className="meta">
+                {t("慢慢来也很好", "Go at your own pace")}
+              </span>
             </div>
             <div className="today-xp">
               <strong data-testid="today-xp">{a.todayXP}</strong>
-              <span>今日 XP</span>
+              <span>{t("今日 XP", "XP today")}</span>
             </div>
             <div className="daily-stats">
               <div>
                 <strong>{a.today.length}</strong>
-                <span>次微动</span>
+                <span>{t("次微动", "Movements")}</span>
               </div>
               <div>
                 <strong>
@@ -112,15 +134,21 @@ export function LegacyHome() {
                     a.today.reduce((n, x) => n + x.elapsedMs, 0) / 60000
                   ).toFixed(1)}
                 </strong>
-                <span>活动分钟</span>
+                <span>{t("活动分钟", "Movement minutes")}</span>
               </div>
             </div>
             <div className="daily-note">
               <Sprout size={21} />
               <p>
                 {a.today.length
-                  ? "你已经为今天留下一点绿意。"
-                  : "先完成一个小行动，看看花园的变化。"}
+                  ? t(
+                      "你已经为今天留下一点绿意。",
+                      "You recorded movement today.",
+                    )
+                  : t(
+                      "先完成一个小行动，看看花园的变化。",
+                      "Record one movement to see how your garden changes.",
+                    )}
               </p>
             </div>
             <Link
@@ -131,22 +159,37 @@ export function LegacyHome() {
                   : `/quest/${chosen[0]?.id ?? quests[0].id}`
               }
             >
-              {active ? "继续我的挑战" : "开始今天的微动"}
+              {active
+                ? t("继续我的挑战", "Continue my activity")
+                : t("开始今天的微动", "Start a movement")}
               <ArrowRight size={17} />
             </Link>
-            <p className="fineprint">完成后由你确认，跳过不会扣分。</p>
+            <p className="fineprint">
+              {t(
+                "完成后由你确认，跳过不会扣分。",
+                "Confirm after you finish. Skipping costs no points.",
+              )}
+            </p>
           </aside>
         </div>
       </details>
       <details className="legacy-garden">
-        <summary>主动探索活动与知识</summary>
+        <summary>
+          {t("主动探索活动与知识", "Explore activities and guides")}
+        </summary>
         <div className="section-heading section-spaced">
           <div>
-            <h2>日常活动库</h2>
-            <p>可以主动探索；此处不是根据此刻场景的自动推荐。</p>
+            <h2>{t("日常活动库", "Everyday activity library")}</h2>
+            <p>
+              {t(
+                "可以主动探索；此处不是根据此刻场景的自动推荐。",
+                "Browse activities by setting and duration.",
+              )}
+            </p>
           </div>
           <Link to="/explore">
-            探索全部 <ArrowRight size={16} />
+            {t("探索全部", "Browse all")}
+            <ArrowRight size={16} />
           </Link>
         </div>
         <div className="quest-grid">
@@ -158,18 +201,26 @@ export function LegacyHome() {
           <Link className="discovery-panel" to="/own-move">
             <Plus size={24} />
             <div>
-              <h3>下一个机会，由你发现。</h3>
-              <p>Create Your Own Move · 记录生活里自己的新发现。</p>
+              <h3>{t("下一个机会，由你发现。", "Create your own movement")}</h3>
+              <p>
+                {t(
+                  "Create Your Own Move · 记录生活里自己的新发现。",
+                  "Save a movement you found in your own routine.",
+                )}
+              </p>
             </div>
             <ArrowUpRight size={23} />
           </Link>
           <Link to="/learn" className="learning-teaser">
             <BookIllustration />
             <div>
-              <span className="meta">一点知识，一点收获</span>
-              <h3>{lessons[0].title}</h3>
+              <span className="meta">
+                {t("一点知识，一点收获", "Knowledge cards")}
+              </span>
+              <h3>{productText(lessons[0].title, locale)}</h3>
               <span className="text-link">
-                打开知识卡 <ArrowRight size={15} />
+                {t("打开知识卡", "Open knowledge card")}
+                <ArrowRight size={15} />
               </span>
             </div>
           </Link>
@@ -196,6 +247,7 @@ function BookIllustration() {
   );
 }
 export function Explore() {
+  const { locale, t } = useLanguage();
   const [scene, setScene] = useState<Scene | "all">("all");
   const [duration, setDuration] = useState(0);
   const [query, setQuery] = useState("");
@@ -204,13 +256,18 @@ export function Explore() {
       activityPolicy(q).eligible &&
       (scene === "all" || q.scene === scene) &&
       (!duration || q.seconds <= duration * 60) &&
-      `${q.title}${q.context}`.includes(query.trim()),
+      `${localizedQuest(q, locale).title} ${productText(q.context, locale)}`
+        .toLowerCase()
+        .includes(query.trim().toLowerCase()),
   );
   return (
     <>
       <PageTitle
-        title="生活里，处处有微动。"
-        description="不必专门腾出时间，先看看你现在的场景。"
+        title={t("生活里，处处有微动。", "Everyday activity library")}
+        description={t(
+          "不必专门腾出时间，先看看你现在的场景。",
+          "Choose an activity that fits where you are and the time you have.",
+        )}
       />
       <div className="scene-grid">
         {scenes.map((s) => (
@@ -222,20 +279,24 @@ export function Explore() {
           >
             <SceneArt scene={s} />
             <div>
-              <span>{sceneInfo[s].name}</span>
-              <small>{sceneInfo[s].en}</small>
+              <span>{t(sceneInfo[s].name, sceneInfo[s].en)}</span>
+              <small>{productText(sceneInfo[s].description, locale)}</small>
             </div>
           </button>
         ))}
       </div>
       <div className="filter-row">
-        <div className="tabs" role="group" aria-label="任务场景">
+        <div
+          className="tabs"
+          role="group"
+          aria-label={t("任务场景", "Activity setting")}
+        >
           <button
             aria-pressed={scene === "all"}
             className={scene === "all" ? "active" : ""}
             onClick={() => setScene("all")}
           >
-            全部场景
+            {t("全部场景", "All settings")}
           </button>
           {scenes.map((s) => (
             <button
@@ -244,33 +305,36 @@ export function Explore() {
               className={scene === s ? "active" : ""}
               onClick={() => setScene(s)}
             >
-              {sceneInfo[s].name}
+              {t(sceneInfo[s].name, sceneInfo[s].en)}
             </button>
           ))}
         </div>
         <div className="filter-inputs">
           <input
-            aria-label="搜索微动"
-            placeholder="搜索微动…"
+            aria-label={t("搜索微动", "Search activities")}
+            placeholder={t("搜索微动…", "Search activities…")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           <select
-            aria-label="活动时长"
+            aria-label={t("活动时长", "Duration")}
             value={duration}
             onChange={(e) => setDuration(Number(e.target.value))}
           >
-            <option value={0}>所有时长</option>
+            <option value={0}>{t("所有时长", "Any duration")}</option>
             {[1, 2, 3].map((m) => (
               <option key={m} value={m}>
-                {m} 分钟以内
+                {t(`${m} 分钟以内`, `Up to ${m} min`)}
               </option>
             ))}
           </select>
         </div>
       </div>
       <p className="meta result-count">
-        找到 {filtered.length} 个日常机会 · 日常建议与休息
+        {t(
+          `找到 ${filtered.length} 个日常机会 · 日常建议与休息`,
+          `${filtered.length} everyday activities and rest breaks`,
+        )}
       </p>
       <div className="quest-grid explore-quests">
         {filtered.map((q) => (
@@ -279,7 +343,7 @@ export function Explore() {
       </div>
       {!filtered.length && (
         <div className="empty">
-          暂时没有符合条件的微动。
+          {t("暂时没有符合条件的微动。", "No activities match these filters.")}
           <button
             className="text-button"
             onClick={() => {
@@ -288,7 +352,7 @@ export function Explore() {
               setScene("all");
             }}
           >
-            清除筛选
+            {t("清除筛选", "Clear filters")}
           </button>
         </div>
       )}
